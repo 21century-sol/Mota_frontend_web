@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { BottomButton, MobileShell, StepTitle } from "./ui";
 
 type PermState = "idle" | "requesting" | "granted" | "denied" | "nodevice";
 
@@ -41,11 +42,8 @@ export default function AccessPermissionStep({ onGranted }: Props) {
   const infoText = "접근 권한은 휴대폰 [설정]에서 언제든지 변경할 수 있습니다.";
 
   return (
-    <main className="relative mx-auto flex min-h-[100dvh] w-full max-w-[360px] flex-col bg-white">
-      {/* 제목 */}
-      <h1 className="px-4 pt-[84px] text-[24px] font-bold leading-[1.5] text-black">
-        접근 권한 설정 안내
-      </h1>
+    <MobileShell>
+      <StepTitle className="pt-[84px]">접근 권한 설정 안내</StepTitle>
 
       {/* 콘텐츠 */}
       <div className="mt-[64px] flex flex-col px-4">
@@ -93,18 +91,13 @@ export default function AccessPermissionStep({ onGranted }: Props) {
       </div>
 
       {/* 허용 버튼: 카메라 허용 전엔 비활성, 허용 후에만 활성 */}
-      <div className="mt-auto px-4 pb-[36px] pt-4">
-        <button
-          type="button"
-          disabled={state === "requesting"}
-          onClick={() => (granted ? onGranted?.() : requestCamera())}
-          className={`flex h-[58px] w-full items-center justify-center rounded-btn text-[16px] font-semibold leading-[1.5] ${
-            granted ? "bg-brand text-white" : "bg-btn-basic text-text-disabled"
-          }`}
-        >
-          {state === "requesting" ? "요청 중…" : "허용"}
-        </button>
-      </div>
-    </main>
+      <BottomButton
+        active={granted}
+        disabled={state === "requesting"}
+        onClick={() => (granted ? onGranted?.() : requestCamera())}
+      >
+        {state === "requesting" ? "요청 중…" : "허용"}
+      </BottomButton>
+    </MobileShell>
   );
 }
