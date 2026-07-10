@@ -1,8 +1,32 @@
 "use client";
 
-import AgreementStep from "@/components/checklist/AgreementStep";
+import { useState } from "react";
+import AgreementStep, {
+  AgreementValues,
+} from "@/components/checklist/AgreementStep";
+import AccessPermissionStep from "@/components/checklist/AccessPermissionStep";
+
+type Step = "agreement" | "permission";
 
 export default function RentalChecklistPage() {
-  // TODO: 토큰 검증 → 스텝 오케스트레이션(약관 → 접근권한 → 점검 → 완료) 연결 예정
-  return <AgreementStep onConfirm={(v) => console.log("agreed", v)} />;
+  const [step, setStep] = useState<Step>("agreement");
+  const [, setAgreement] = useState<AgreementValues | null>(null);
+
+  // TODO: 토큰 검증 → 점검 → 완료 단계 연결 예정
+  if (step === "permission") {
+    return (
+      <AccessPermissionStep
+        onGranted={() => console.log("camera permission granted → next")}
+      />
+    );
+  }
+
+  return (
+    <AgreementStep
+      onConfirm={(v) => {
+        setAgreement(v);
+        setStep("permission");
+      }}
+    />
+  );
 }
