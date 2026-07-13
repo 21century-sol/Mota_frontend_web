@@ -39,7 +39,8 @@ export default function AccessPermissionStep({ onGranted }: Props) {
     requestCamera();
   }, [requestCamera]);
 
-  const infoText = "접근 권한은 휴대폰 [설정]에서 언제든지 변경할 수 있습니다.";
+  const infoText =
+    "브라우저 주소창의 [사이트 설정]에서 [카메라 권한]을 [허용]으로 변경해 주세요.";
 
   return (
     <MobileShell>
@@ -57,20 +58,13 @@ export default function AccessPermissionStep({ onGranted }: Props) {
           <div className="flex flex-col py-[18px]">
             <div className="flex w-full items-center gap-[10px]">
               <div className="flex items-center gap-[10px]">
-                <div className="flex size-7 shrink-0 items-center justify-center rounded-[8px] bg-[#ff801a]">
-                  {/* Figma ◉(FISHEYE) 글리프 재현: 흰 디스크 + 얇은 주황 링 */}
-                  <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden>
-                    <circle cx="8" cy="8" r="6" fill="#fff" />
-                    <circle
-                      cx="8"
-                      cy="8"
-                      r="3.7"
-                      fill="none"
-                      stroke="#ff801a"
-                      strokeWidth="1.3"
-                    />
-                  </svg>
-                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/camera.svg"
+                  alt=""
+                  className="size-7 shrink-0"
+                  aria-hidden
+                />
                 <p className="text-[16px] font-bold leading-[1.5] text-text-strong">
                   카메라
                 </p>
