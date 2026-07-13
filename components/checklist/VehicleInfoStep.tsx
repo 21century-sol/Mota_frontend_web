@@ -23,7 +23,6 @@ interface Props {
 export default function VehicleInfoStep({
   vehicle = DEFAULT_VEHICLE,
   onStart,
-  onInquiry,
 }: Props) {
   const rows: [string, string][] = [
     ["차량 모델", vehicle.model],
