@@ -6,14 +6,12 @@ export interface VehicleInfo {
   model: string;
   plateNumber: string;
   modelYear: string;
-  vehicleType: string;
 }
 
 const DEFAULT_VEHICLE: VehicleInfo = {
   model: "현대 그랜저 IG",
   plateNumber: "12가 3456",
-  modelYear: "2022년",
-  vehicleType: "준대형 세단",
+  modelYear: "2022년"
 };
 
 interface Props {
@@ -30,8 +28,7 @@ export default function VehicleInfoStep({
   const rows: [string, string][] = [
     ["차량 모델", vehicle.model],
     ["차량번호", vehicle.plateNumber],
-    ["연식", vehicle.modelYear],
-    ["차종", vehicle.vehicleType],
+    ["연식", vehicle.modelYear]
   ];
 
   return (
@@ -74,7 +71,7 @@ export default function VehicleInfoStep({
             onClick={onInquiry}
             className="text-[rgba(68,70,78,0.6)] underline"
           >
-            문의하기
+            고객센터 연결하기
           </button>
         </p>
         <ActionButton active onClick={onStart}>
