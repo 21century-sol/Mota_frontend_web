@@ -40,7 +40,7 @@ export default function AccessPermissionStep({ onGranted }: Props) {
   }, [requestCamera]);
 
   const infoText =
-    "브라우저 주소창의 [사이트 설정]에서 [카메라 권한]을 [허용]으로 변경해 주세요.";
+    "브라우저 주소창의 [사이트 설정]에서 [카메라 권한]을\n[허용]으로 변경해 주세요.";
 
   return (
     <MobileShell>
@@ -78,7 +78,7 @@ export default function AccessPermissionStep({ onGranted }: Props) {
 
         {/* 안내 박스 */}
         <div className="rounded-[12px] bg-[rgba(90,70,250,0.05)] px-6 py-5">
-          <p className="text-[13px] font-normal leading-[1.4] text-text-sub">
+          <p className="whitespace-pre-line text-[13px] font-normal leading-[1.4] text-text-sub">
             {infoText}
           </p>
         </div>
