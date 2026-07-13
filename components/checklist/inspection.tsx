@@ -212,6 +212,13 @@ export function PhotoAttach({
 
 export type ToggleValue = "ok" | "bad" | null;
 
+/** 점검 항목 1개의 답변 (질문 1개에 대응) */
+export interface ItemAnswer {
+  abnormal: boolean;
+  text: string;
+  photo: File | null;
+}
+
 /** 이상 없음 / 이상 있음 토글 */
 export function StatusToggle({
   value,

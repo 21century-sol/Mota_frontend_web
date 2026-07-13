@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   InspectionScaffold,
+  type ItemAnswer,
   MemoInput,
   PhotoAttach,
   SectionBadge,
@@ -12,7 +13,8 @@ import {
 
 interface Props {
   onBack?: () => void;
-  onNext?: () => void;
+  /** 답변 1개(긁힘·찍힘·균열) 전달 */
+  onNext?: (answers: ItemAnswer[]) => void;
 }
 
 export default function ExteriorInspectionStep({ onBack, onNext }: Props) {
@@ -27,7 +29,9 @@ export default function ExteriorInspectionStep({ onBack, onNext }: Props) {
       subtitle="차량 외부를 사진 찍어 업로드해주세요."
       onBack={onBack}
       canProceed={photo !== null && toggle !== null}
-      onNext={onNext}
+      onNext={() =>
+        onNext?.([{ abnormal: toggle === "bad", text: memo, photo }])
+      }
     >
       <div className="flex flex-col gap-[18px]">
         <SectionBadge desc="긁힘·찍힘·균열" />

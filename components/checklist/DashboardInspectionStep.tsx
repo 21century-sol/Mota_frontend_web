@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   InspectionScaffold,
+  type ItemAnswer,
   ItemLabel,
   ItemStack,
   MemoInput,
@@ -14,7 +15,8 @@ import WarningModal from "./WarningModal";
 
 interface Props {
   onBack?: () => void;
-  onSubmit?: () => void;
+  /** 답변 2개(연료량, 경고등) 순서대로 전달 후 제출 */
+  onSubmit?: (answers: ItemAnswer[]) => void;
 }
 
 export default function DashboardInspectionStep({ onBack, onSubmit }: Props) {
@@ -32,7 +34,12 @@ export default function DashboardInspectionStep({ onBack, onSubmit }: Props) {
         subtitle="시동을 켜고 계기판 상태를 확인하세요."
         onBack={onBack}
         canProceed={fuelPhoto !== null && warnToggle !== null}
-        onNext={onSubmit}
+        onNext={() =>
+          onSubmit?.([
+            { abnormal: false, text: fuelMemo, photo: fuelPhoto },
+            { abnormal: warnToggle === "bad", text: warnMemo, photo: null },
+          ])
+        }
         footerLabel="최종 제출"
       >
         <ItemStack>
