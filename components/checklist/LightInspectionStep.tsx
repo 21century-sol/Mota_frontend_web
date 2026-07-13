@@ -16,13 +16,11 @@ const ITEMS = [
   {
     key: "headlight",
     label: "전조등 정상 작동 확인",
-    required: false,
     modalName: "전조등",
   },
   {
     key: "turnSignal",
     label: "방향 지시등(깜빡이) 정상 작동",
-    required: true,
     modalName: "방향 지시등(깜빡이)",
   },
 ];
@@ -67,7 +65,7 @@ export default function LightInspectionStep({ onBack, onNext }: Props) {
         <ItemStack>
           {ITEMS.map((item) => (
             <div key={item.key} className="flex flex-col gap-[18px]">
-              <ItemLabel label={item.label} required={item.required} />
+              <ItemLabel label={item.label} />
               <div className="flex flex-col gap-3">
                 <StatusToggle
                   value={toggles[item.key] ?? null}
