@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   InspectionScaffold,
+  type ItemAnswer,
   ItemLabel,
   ItemStack,
   MemoInput,
@@ -28,7 +29,8 @@ const ITEMS = [
 
 interface Props {
   onBack?: () => void;
-  onNext?: () => void;
+  /** 답변 2개(전조등, 방향지시등) 순서대로 전달 */
+  onNext?: (answers: ItemAnswer[]) => void;
 }
 
 export default function LightInspectionStep({ onBack, onNext }: Props) {
@@ -52,7 +54,15 @@ export default function LightInspectionStep({ onBack, onNext }: Props) {
         subtitle="차량 외부를 사진 찍어 업로드해주세요."
         onBack={onBack}
         canProceed={allAnswered}
-        onNext={onNext}
+        onNext={() =>
+          onNext?.(
+            ITEMS.map((i) => ({
+              abnormal: toggles[i.key] === "bad",
+              text: memos[i.key] ?? "",
+              photo: null,
+            })),
+          )
+        }
       >
         <ItemStack>
           {ITEMS.map((item) => (
