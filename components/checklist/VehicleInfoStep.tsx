@@ -66,13 +66,12 @@ export default function VehicleInfoStep({
       <div className="mt-auto flex flex-col items-center gap-3 px-4 pb-[36px] pt-4">
         <p className="flex items-center gap-1.5 text-[12px] font-medium leading-[1.5]">
           <span className="text-[rgba(68,70,78,0.42)]">정보가 다르나요?</span>
-          <button
-            type="button"
-            onClick={onInquiry}
-            className="text-[rgba(68,70,78,0.6)] underline"
+          <a
+              href="tel:1588-5858"
+              className="text-[rgba(68,70,78,0.6)] underline"
           >
             고객센터 연결하기
-          </button>
+          </a>
         </p>
         <ActionButton active onClick={onStart}>
           점검 시작
