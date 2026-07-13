@@ -43,7 +43,7 @@ export default function LightInspectionStep({ onBack, onNext }: Props) {
   function onToggle(key: string, v: ToggleValue) {
     setToggles((p) => ({ ...p, [key]: v }));
     const item = ITEMS.find((i) => i.key === key);
-    if (item?.required && v === "bad") setModalItem(item.modalName);
+    if (item && v === "bad") setModalItem(item.modalName);
   }
 
   return (
@@ -59,7 +59,7 @@ export default function LightInspectionStep({ onBack, onNext }: Props) {
             ITEMS.map((i) => ({
               abnormal: toggles[i.key] === "bad",
               text: memos[i.key] ?? "",
-              photo: null,
+              photos: [],
             })),
           )
         }
