@@ -49,7 +49,7 @@ export default function LightInspectionStep({ onBack, onNext }: Props) {
       <InspectionScaffold
         percent={50}
         title="라이트 점검"
-        subtitle="차량 외부를 사진 찍어 업로드해주세요."
+        subtitle="라이트가 정상적으로 작동하는지 확인해 주세요."
         onBack={onBack}
         canProceed={allAnswered}
         onNext={() =>
