@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ActionButton, MobileShell } from "./ui";
 import {
   CameraIcon,
@@ -53,7 +53,7 @@ export function InspectionHeader({
       <h1 className="text-[24px] font-semibold leading-[1.4] text-black">
         {title}
       </h1>
-      <p className="text-[16px] font-medium leading-[1.5] text-black">
+      <p className="whitespace-pre-line text-[16px] font-medium leading-[1.5] text-black">
         {subtitle}
       </p>
     </div>
@@ -173,23 +173,6 @@ export function PhotoAttach({
 
   return (
     <label className="relative flex h-[100px] w-full cursor-pointer flex-col items-center justify-center rounded-[12px] bg-[#fafafa] p-2">
-      {/* Figma 대시 패턴 재현 (CSS border-dashed는 대시/갭 제어 불가).
-          viewBox 없이 px 단위 → 폭이 바뀌어도 대시 길이 일정(반응형) */}
-      <svg
-        className="pointer-events-none absolute inset-0 h-full w-full"
-        fill="none"
-        aria-hidden
-      >
-        <rect
-          x="0.5"
-          y="0.5"
-          rx="11.5"
-          stroke="#e7e7e8"
-          strokeWidth="1"
-          strokeDasharray="6 5"
-          style={{ width: "calc(100% - 1px)", height: "calc(100% - 1px)" }}
-        />
-      </svg>
       <div className="relative flex items-center justify-center gap-1">
         <CameraIcon className="shrink-0" />
         <span className="text-[13px] font-medium leading-[1.5] text-[#525252]">
@@ -210,13 +193,104 @@ export function PhotoAttach({
   );
 }
 
+/** 사진 여러 장 첨부 (썸네일 그리드 + 추가 타일) */
+export function PhotoAttachMulti({
+  files,
+  onAdd,
+  onRemove,
+  max = 6,
+}: {
+  files: File[];
+  onAdd: (files: File[]) => void;
+  onRemove: (index: number) => void;
+  max?: number;
+}) {
+  const urls = useMemo(
+    () => files.map((f) => URL.createObjectURL(f)),
+    [files],
+  );
+  useEffect(
+    () => () => urls.forEach((u) => URL.revokeObjectURL(u)),
+    [urls],
+  );
+
+  const remaining = max - files.length;
+
+  const fileInput = (
+    <input
+      type="file"
+      accept="image/*"
+      multiple
+      className="hidden"
+      onChange={(e) => {
+        const picked = Array.from(e.target.files ?? []).slice(0, remaining);
+        if (picked.length) onAdd(picked);
+        e.target.value = "";
+      }}
+    />
+  );
+
+  // 첨부 전: 전체 폭 박스 (카메라 + 사진 첨부 + 최대 N장)
+  if (files.length === 0) {
+    return (
+      <label className="flex h-[100px] w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-[12px] bg-[#fafafa] p-2">
+        <CameraIcon className="shrink-0" />
+        <span className="text-[13px] font-medium leading-[1.5] text-[#525252]">
+          사진 첨부
+        </span>
+        <span className="text-[12px] font-normal leading-[1.5] text-[#68696b]">
+          최대 {max}장
+        </span>
+        {fileInput}
+      </label>
+    );
+  }
+
+  // 첨부 후: 3열 썸네일 그리드 (+ 추가 타일)
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {files.map((file, i) => (
+        <div
+          key={urls[i]}
+          className="relative aspect-square overflow-hidden rounded-[12px] border border-solid border-[#e7e7e8] bg-[#fafafa]"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={urls[i]}
+            alt={`첨부 사진 ${i + 1}`}
+            className="h-full w-full object-cover"
+          />
+          <button
+            type="button"
+            onClick={() => onRemove(i)}
+            aria-label="사진 삭제"
+            className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-full bg-black/50 text-[14px] leading-none text-white"
+          >
+            ×
+          </button>
+        </div>
+      ))}
+
+      {remaining > 0 && (
+        <label className="relative flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-[12px] bg-[#fafafa]">
+          <CameraIcon className="shrink-0" />
+          <span className="text-[12px] font-medium leading-[1.5] text-[#525252]">
+            사진 첨부
+          </span>
+          {fileInput}
+        </label>
+      )}
+    </div>
+  );
+}
+
 export type ToggleValue = "ok" | "bad" | null;
 
 /** 점검 항목 1개의 답변 (질문 1개에 대응) */
 export interface ItemAnswer {
   abnormal: boolean;
   text: string;
-  photo: File | null;
+  photos: File[];
 }
 
 /** 이상 없음 / 이상 있음 토글 */

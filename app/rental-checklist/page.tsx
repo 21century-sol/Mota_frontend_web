@@ -24,7 +24,15 @@ import ExteriorInspectionStep from "@/components/checklist/ExteriorInspectionSte
 import LightInspectionStep from "@/components/checklist/LightInspectionStep";
 import DashboardInspectionStep from "@/components/checklist/DashboardInspectionStep";
 import CompletionStep from "@/components/checklist/CompletionStep";
+import AlreadySubmittedStep from "@/components/checklist/AlreadySubmittedStep";
 import type { ItemAnswer } from "@/components/checklist/inspection";
+
+/** 이미 제출된(중복 제출) 에러인지 판별: 409 Conflict 또는 안내 문구 매칭 */
+function isAlreadySubmitted(e: unknown): boolean {
+  if (!(e instanceof ApiError)) return false;
+  if (e.status === 409) return true;
+  return /이미|중복|already|submitted/i.test(e.message);
+}
 
 type Step =
   | "agreement"
@@ -56,6 +64,7 @@ function ChecklistFlow() {
 
   const [loading, setLoading] = useState(true);
   const [fatalError, setFatalError] = useState<string | null>(null);
+  const [alreadySubmitted, setAlreadySubmitted] = useState(false);
   const [ctx, setCtx] = useState<TokenContext | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
 
@@ -88,11 +97,15 @@ function ChecklistFlow() {
         setQuestions([...qs].sort((a, b) => a.displayOrder - b.displayOrder));
       } catch (e) {
         if (!active) return;
-        setFatalError(
-          e instanceof ApiError
-            ? e.message
-            : "정보를 불러오지 못했습니다. 네트워크 상태를 확인해 주세요.",
-        );
+        if (isAlreadySubmitted(e)) {
+          setAlreadySubmitted(true);
+        } else {
+          setFatalError(
+            e instanceof ApiError
+              ? e.message
+              : "정보를 불러오지 못했습니다. 네트워크 상태를 확인해 주세요.",
+          );
+        }
       } finally {
         if (active) setLoading(false);
       }
@@ -113,8 +126,8 @@ function ChecklistFlow() {
     const photos: File[] = [];
     const answers: AnswerPayload[] = all.map((a, i) => {
       const indexes: number[] = [];
-      if (a.photo) {
-        photos.push(a.photo);
+      for (const p of a.photos) {
+        photos.push(p);
         indexes.push(photos.length - 1);
       }
       return {
@@ -139,14 +152,22 @@ function ChecklistFlow() {
       await submitChecklist(payload, photos);
       setStep("done");
     } catch (e) {
-      setSubmitError(
-        e instanceof ApiError
-          ? e.message
-          : "제출에 실패했습니다. 잠시 후 다시 시도해 주세요.",
-      );
+      if (isAlreadySubmitted(e)) {
+        setAlreadySubmitted(true);
+      } else {
+        setSubmitError(
+          e instanceof ApiError
+            ? e.message
+            : "제출에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+        );
+      }
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (alreadySubmitted) {
+    return <AlreadySubmittedStep />;
   }
 
   if (loading) {

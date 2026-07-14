@@ -36,8 +36,12 @@ export default function DashboardInspectionStep({ onBack, onSubmit }: Props) {
         canProceed={fuelPhoto !== null && warnToggle !== null}
         onNext={() =>
           onSubmit?.([
-            { abnormal: false, text: fuelMemo, photo: fuelPhoto },
-            { abnormal: warnToggle === "bad", text: warnMemo, photo: null },
+            {
+              abnormal: false,
+              text: fuelMemo,
+              photos: fuelPhoto ? [fuelPhoto] : [],
+            },
+            { abnormal: warnToggle === "bad", text: warnMemo, photos: [] },
           ])
         }
         footerLabel="최종 제출"
