@@ -37,11 +37,23 @@ const config: Config = {
         "dashboard-placeholder": "#989ba2", // Search placeholder 텍스트
         "dashboard-text": "#111111", // Search 입력값 텍스트
         "dashboard-account-text": "#5a5c63", // 계정/알림 아이콘 텍스트
+
+        // Dashboard main-content (light background) tokens (Figma file
+        // JRL5IHK20Ocs9hfiGus7Xz, node 2361:23652 "Stats Container"). Value equals
+        // `dashboard-sidebar` (#0f0f10) but intentionally kept as a separate token —
+        // that one is a dark Sidebar background, this is a light-surface text color
+        // (Decision Resolved 2026-07-16, .claude/handoffs/11-figma-specs.md #2).
+        "dashboard-text-primary": "#0f0f10", // 요약 카드 Label/Count 텍스트
+        "dashboard-text-muted": "#70737c", // 요약 카드 Unit("대") 텍스트
       },
       borderRadius: {
         card: "12px",
         btn: "18px",
         "dashboard-nav": "10px", // 비활성 사이드바 메뉴 radius (표준 스케일 밖 값, node 2483:30897)
+        "dashboard-card": "24px", // 요약 카드 radius (node 2361:23653 등), 기존 `card`(12px)와 별개
+      },
+      boxShadow: {
+        "dashboard-card": "0px 2px 8px rgba(0,0,0,0.08)", // 요약 카드 그림자 (node 2361:23652 하위)
       },
     },
   },
