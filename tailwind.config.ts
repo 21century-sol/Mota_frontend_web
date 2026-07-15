@@ -45,6 +45,14 @@ const config: Config = {
         // (Decision Resolved 2026-07-16, .claude/handoffs/11-figma-specs.md #2).
         "dashboard-text-primary": "#0f0f10", // 요약 카드 Label/Count 텍스트
         "dashboard-text-muted": "#70737c", // 요약 카드 Unit("대") 텍스트
+
+        // Dashboard cost chart tokens (issue #13, Figma file JRL5IHK20Ocs9hfiGus7Xz,
+        // node 2361:23748 "Stats Section"). `#5a55f2` is visually close to but
+        // confirmed distinct from checklist `brand` (#5a46fa) — kept as its own token
+        // (.claude/handoffs/13-figma-specs.md Token Mapping, resolved 2026-07-16).
+        "dashboard-chart-accent": "#5a55f2", // current(올해) 라인 / 강조월 / 활성연도 / 증감%
+        "dashboard-chart-accent-soft": "rgba(90,85,242,0.18)", // 활성 연도 pill 배경
+        "dashboard-chart-axis": "#b2b2c2", // last(전년) 라인 / 비활성 월·축 라벨
       },
       borderRadius: {
         card: "12px",
@@ -54,6 +62,11 @@ const config: Config = {
       },
       boxShadow: {
         "dashboard-card": "0px 2px 8px rgba(0,0,0,0.08)", // 요약 카드 그림자 (node 2361:23652 하위)
+      },
+      dropShadow: {
+        // 차트 강조 포인트 툴팁 그림자 (node 2361:23766). SVG 요소는 CSS `box-shadow`가
+        // 적용되지 않아 `filter: drop-shadow(...)` 기반 유틸리티로 등록한다.
+        "dashboard-tooltip": "0px 4px 10px rgba(77,77,128,0.12)",
       },
     },
   },
