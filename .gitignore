@@ -9,3 +9,6 @@
 *.tsbuildinfo
 next-env.d.ts
 .vercel
+
+# Claude agent temporary handoffs (do not commit)
+.claude/handoffs/
