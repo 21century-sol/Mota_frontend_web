@@ -18,11 +18,22 @@
 
 ```bash
 npm install
-cp .env.local.example .env.local   # NEXT_PUBLIC_API_BASE 를 백엔드 주소로
-npm run dev                        # http://localhost:3000
+cp .env.example .env.local   # NEXT_PUBLIC_API_BASE 를 백엔드 주소로
+npm run dev                  # http://localhost:3000
 ```
 
 테스트 URL 예: `http://localhost:3000/rental-checklist?token=<발급된 토큰>`
+
+## 품질 검사
+
+PR 전 또는 CI와 동일하게 아래를 실행합니다.
+
+```bash
+npm run lint
+npm run typecheck
+npm run test
+npm run build
+```
 
 ## 환경 변수
 
