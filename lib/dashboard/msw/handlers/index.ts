@@ -1,6 +1,8 @@
 import type { RequestHandler } from "msw";
 
-// TODO(#11): add summary-card handlers here once api-agent confirms the DTO
-// contract for the dashboard summary cards. Do not guess endpoint shapes
-// ahead of that contract (CLAUDE.md §6).
-export const handlers: RequestHandler[] = [];
+import { summaryNormalHandler } from "@/lib/dashboard/msw/handlers/summary";
+
+// Dev-boot default: only the "normal" summary-card scenario runs out of the box.
+// Other scenarios (empty/error/slow) are opted into per-test via `server.use(...)`
+// (see tests/dashboard/summary-cards-section.test.tsx).
+export const handlers: RequestHandler[] = [summaryNormalHandler];
