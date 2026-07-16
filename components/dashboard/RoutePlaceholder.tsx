@@ -1,13 +1,13 @@
 /**
  * Minimal "coming soon" placeholder shared by routes whose real content is scoped to
- * later issues (dashboard summary/alerts/chart: #11-#13, vehicle list: #14,
- * reservation list: #16 — see .claude/handoffs/5-pm-breakdown.md Safe Assumption A4).
- * Each caller should stop rendering this once its own feature issue lands.
+ * later issues (vehicle list: #14, reservation list: #16 — see
+ * .claude/handoffs/5-pm-breakdown.md Safe Assumption A4). `/dashboard` no longer
+ * uses this placeholder itself (summary/alerts+map/chart landed in #11/#12/#13).
+ * Each remaining caller should stop rendering this once its own feature issue lands.
  *
  * `headingLevel` defaults to `h1` (the placeholder is the page's only content in
- * most routes). `/dashboard` passes `h2` (issue #11) because that page now has its
- * own `h1` plus a real summary-cards section above these remaining placeholders,
- * and a page must not contain more than one `h1`.
+ * most routes). Callers that already have their own page `h1` (and would
+ * otherwise render a second one) should pass `h2` instead.
  */
 export function RoutePlaceholder({
   title,

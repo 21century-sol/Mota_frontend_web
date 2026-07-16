@@ -53,6 +53,14 @@ const config: Config = {
         "dashboard-chart-accent": "#5a55f2", // current(올해) 라인 / 강조월 / 활성연도 / 증감%
         "dashboard-chart-accent-soft": "rgba(90,85,242,0.18)", // 활성 연도 pill 배경
         "dashboard-chart-axis": "#b2b2c2", // last(전년) 라인 / 비활성 월·축 라벨
+
+        // Dashboard alerts + vehicle map tokens (issue #12, Figma file
+        // JRL5IHK20Ocs9hfiGus7Xz, node 2377:23755 "Map and Alerts Container").
+        // (.claude/handoffs/12-figma-specs.md Token Mapping, resolved 2026-07-16).
+        "dashboard-alert-danger-bg": "rgba(254,61,22,0.1)", // 위험 알림 아이콘 배경
+        "dashboard-alert-warning-bg": "rgba(255,138,0,0.1)", // 주의 알림 아이콘 배경
+        "dashboard-text-tertiary": "#99a1ab", // 알림 시각 텍스트 / 지도 "전체" 링크
+        "dashboard-divider": "#f0f0f0", // 알림 리스트 항목 구분선(review-agent Medium finding, 이전엔 arbitrary value로 중복)
       },
       borderRadius: {
         card: "12px",
