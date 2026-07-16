@@ -33,6 +33,22 @@ function readApiBase(): string {
   return value;
 }
 
+/**
+ * Kakao Maps JavaScript key (issue #12, Decision Resolved 2026-07-16 #1,
+ * `.claude/handoffs/12-pm-breakdown.md`). Set locally in `.env.local` (not
+ * committed — see `.env.example`). Deliberately returns `undefined` instead of a
+ * fake default when unset: `VehicleMap` treats a missing key as a *supported*
+ * fallback state (no SDK load attempt), not an error to warn about.
+ *
+ * Referenced as the literal `process.env.NEXT_PUBLIC_KAKAO_MAP_APP_KEY`
+ * expression (not a dynamic key) so Next.js can statically inline it.
+ */
+function readKakaoMapAppKey(): string | undefined {
+  const value = process.env.NEXT_PUBLIC_KAKAO_MAP_APP_KEY;
+  return value ? value : undefined;
+}
+
 export const dashboardClientEnv = {
   apiBase: readApiBase(),
+  kakaoMapAppKey: readKakaoMapAppKey(),
 };

@@ -40,6 +40,7 @@ npm run build
 | 이름 | 설명 | 예시 |
 | --- | --- | --- |
 | `NEXT_PUBLIC_API_BASE` | 백엔드 API 주소 (운영은 반드시 https) | `https://api.your-domain.com` |
+| `NEXT_PUBLIC_KAKAO_MAP_APP_KEY` | Kakao Maps JavaScript 키 (관리자 대시보드 지도) | Kakao Developers에서 발급 |
 
 ## Vercel 배포
 
