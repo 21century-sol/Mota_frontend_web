@@ -61,6 +61,29 @@ const config: Config = {
         "dashboard-alert-warning-bg": "rgba(255,138,0,0.1)", // 주의 알림 아이콘 배경
         "dashboard-text-tertiary": "#99a1ab", // 알림 시각 텍스트 / 지도 "전체" 링크
         "dashboard-divider": "#f0f0f0", // 알림 리스트 항목 구분선(review-agent Medium finding, 이전엔 arbitrary value로 중복)
+
+        // Dashboard vehicle list tokens (issue #14, Figma file JRL5IHK20Ocs9hfiGus7Xz,
+        // node 2467:25966 "Vehicle List Section" / 2467:25928 "Filter Tabs" /
+        // 2722:28835 타이어 상태 필터). (.claude/handoffs/14-figma-specs.md Token
+        // Mapping, resolved 2026-07-16).
+        "dashboard-vehicles-border": "#e1e2e4", // 테이블/필터 보더
+        "dashboard-vehicles-surface": "#f1f1f5", // 목록 영역 배경
+        "dashboard-vehicles-label": "#878a93", // 테이블 헤더 라벨 / 보조 텍스트
+        "dashboard-vehicles-title": "#2e2f33", // 차량정보 타이틀 텍스트
+        // 선택된 타이어 상태 칩 배경. Figma 값 rgba(90,70,250,0.2)은 기존 `brand`
+        // 토큰(#5a46fa ≈ rgb(90,70,250))의 20% 알파와 사실상 동일해 별도 hex 대신
+        // 알파만 다른 파생 토큰으로 등록한다.
+        "dashboard-chip-selected-bg": "rgba(90,70,250,0.2)",
+        // 상태 뱃지 3색(대여 가능/대여 중/운행 불가). 배경은 Figma에 명시된 값이 아니라
+        // 기존 알림 배지 규칙(`dashboard-alert-danger-bg` 등, 10% 알파)을 그대로 적용한
+        // 파생값이다 — ui-agent 재량 판단(PM Decision 8), 실제 배경 스타일이
+        // 필요하면 재검증 대상.
+        "dashboard-status-available": "#16b338",
+        "dashboard-status-rented": "#fb963d",
+        "dashboard-status-repair": "#fb463d",
+        "dashboard-status-available-bg": "rgba(22,179,56,0.1)",
+        "dashboard-status-rented-bg": "rgba(251,150,61,0.1)",
+        "dashboard-status-repair-bg": "rgba(251,70,61,0.1)",
       },
       borderRadius: {
         card: "12px",
