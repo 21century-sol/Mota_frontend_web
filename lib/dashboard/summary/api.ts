@@ -1,16 +1,15 @@
 import type {
-  VehicleStatus,
-  VehicleStatusCountDto,
+  DashboardSummaryContentDto,
   VehicleSummaryCounts,
 } from "@/types/dashboard/summary";
-import { VEHICLE_STATUSES } from "@/types/dashboard/summary";
 import { dashboardClientEnv } from "@/lib/dashboard/env/client";
 
 /**
- * Decision D1 (`.claude/handoffs/11-api-specs.md`) is unresolved on purpose: whether
- * the backend wraps responses in the checklist-style `{statusCode, error, content}`
- * envelope is not confirmed. This error is thrown instead of silently treating an
- * unexpected shape as empty/0 (AC3 requires 0 to be distinguishable from "no data").
+ * Thrown for a response whose *shape* is invalid (missing/non-numeric fields).
+ * Kept separate from {@link VehicleSummaryFetchError} (business-level failure:
+ * `statusCode !== 200` or `error !== null` inside an otherwise well-formed
+ * envelope) so a real shape bug is never silently treated as empty/0 (AC3
+ * requires 0 to be distinguishable from "no data").
  */
 export class VehicleSummaryContractMismatchError extends Error {
   constructor(reason: string) {
@@ -38,85 +37,70 @@ export class VehicleSummaryFetchError extends Error {
   }
 }
 
-function isVehicleStatus(value: unknown): value is VehicleStatus {
-  return (
-    typeof value === "string" &&
-    (VEHICLE_STATUSES as readonly string[]).includes(value)
-  );
+function isNonNegativeFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
 }
 
-function isVehicleStatusCountDto(
+function isDashboardSummaryContentDto(
   value: unknown,
-): value is VehicleStatusCountDto {
+): value is DashboardSummaryContentDto {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as Record<string, unknown>;
   return (
-    isVehicleStatus(candidate.status) &&
-    typeof candidate.count === "number" &&
-    Number.isFinite(candidate.count) &&
-    candidate.count >= 0
+    isNonNegativeFiniteNumber(candidate.total) &&
+    isNonNegativeFiniteNumber(candidate.available) &&
+    isNonNegativeFiniteNumber(candidate.rented) &&
+    isNonNegativeFiniteNumber(candidate.repair)
   );
 }
 
 /**
- * Absorbs both response shapes so D1 does not need to be settled before UI work
- * can proceed:
- *  - 안 B (bare array): `VehicleStatusCountDto[]`
- *  - 안 A (checklist-style envelope): `{ statusCode, error, content: VehicleStatusCountDto[] }`
- * Only structurally checked — `lib/api.ts`'s `ApiResponse<T>` type is never imported
- * (protected file, CLAUDE.md §3).
- */
-function extractDtoArray(raw: unknown): unknown[] {
-  if (Array.isArray(raw)) {
-    return raw; // 안 B
-  }
-  if (typeof raw === "object" && raw !== null && "content" in raw) {
-    const content = (raw as Record<string, unknown>).content;
-    if (Array.isArray(content)) {
-      return content; // 안 A
-    }
-  }
-  throw new VehicleSummaryContractMismatchError(
-    "response is neither a bare array nor an envelope with an array `content` field",
-  );
-}
-
-/**
- * unknown → UI model. A missing status falls back to 0 (an explicit, documented
- * default — not data loss). An unknown or duplicate status is treated as a
- * contract mismatch instead of being dropped silently.
+ * unknown → UI model, per the confirmed envelope `{ statusCode, error, content }`
+ * (issue #31). `statusCode !== 200` or `error !== null` is a business-level
+ * failure inside an otherwise well-formed response, so it is surfaced as a
+ * {@link VehicleSummaryFetchError} (same "couldn't load, retry" UX as an HTTP
+ * error) rather than a {@link VehicleSummaryContractMismatchError}, which is
+ * reserved for a malformed/unexpected shape.
  */
 export function toVehicleSummaryCounts(raw: unknown): VehicleSummaryCounts {
-  const dtoArray = extractDtoArray(raw);
-  const counts = new Map<VehicleStatus, number>();
+  if (typeof raw !== "object" || raw === null) {
+    throw new VehicleSummaryContractMismatchError("response is not an object");
+  }
+  const envelope = raw as Record<string, unknown>;
 
-  for (const entry of dtoArray) {
-    if (!isVehicleStatusCountDto(entry)) {
-      throw new VehicleSummaryContractMismatchError(
-        "array entry is missing a valid `status` enum value or non-negative `count`",
-      );
-    }
-    if (counts.has(entry.status)) {
-      throw new VehicleSummaryContractMismatchError(
-        `duplicate status entry: ${entry.status}`,
-      );
-    }
-    counts.set(entry.status, entry.count);
+  if (typeof envelope.statusCode !== "number") {
+    throw new VehicleSummaryContractMismatchError(
+      "response is missing a numeric `statusCode` field",
+    );
+  }
+  if (envelope.statusCode !== 200 || envelope.error !== null) {
+    throw new VehicleSummaryFetchError(
+      envelope.statusCode >= 500 ? "server-error" : "client-error",
+      "요약 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+      undefined,
+      envelope.statusCode,
+    );
+  }
+  if (!isDashboardSummaryContentDto(envelope.content)) {
+    throw new VehicleSummaryContractMismatchError(
+      "`content` is missing a non-negative finite `total`/`available`/`rented`/`repair` field",
+    );
   }
 
+  const { total, available, rented, repair } = envelope.content;
   return {
-    ownedCount: counts.get("OWNED") ?? 0,
-    availableCount: counts.get("AVAILABLE") ?? 0,
-    rentedCount: counts.get("RENTED") ?? 0,
-    unavailableCount: counts.get("UNAVAILABLE") ?? 0,
+    ownedCount: total,
+    availableCount: available,
+    rentedCount: rented,
+    unavailableCount: repair,
   };
 }
 
 /**
- * MSW-only placeholder path. TODO(#11): replace with the confirmed backend
- * endpoint once the real contract lands and remove this comment.
+ * Confirmed backend endpoint (issue #31, Swagger
+ * `https://mota-app.duckdns.org/swagger-ui/index.html#/Dashboard/getSummary`).
  */
-export const SUMMARY_ENDPOINT_PATH = "/api/dashboard/vehicles/summary";
+export const SUMMARY_ENDPOINT_PATH = "/api/dashboard/summary";
 
 /**
  * Some environments (notably Vitest's jsdom test environment: jsdom installs its

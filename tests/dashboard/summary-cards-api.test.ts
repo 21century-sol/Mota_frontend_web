@@ -2,17 +2,17 @@ import { describe, expect, it } from "vitest";
 
 import {
   VehicleSummaryContractMismatchError,
+  VehicleSummaryFetchError,
   toVehicleSummaryCounts,
 } from "@/lib/dashboard/summary/api";
 
 describe("toVehicleSummaryCounts", () => {
-  it("maps a bare array response (안 B) to the UI model", () => {
-    const result = toVehicleSummaryCounts([
-      { status: "OWNED", count: 42 },
-      { status: "AVAILABLE", count: 18 },
-      { status: "RENTED", count: 20 },
-      { status: "UNAVAILABLE", count: 4 },
-    ]);
+  it("maps the confirmed envelope response to the UI model (issue #31)", () => {
+    const result = toVehicleSummaryCounts({
+      statusCode: 200,
+      error: null,
+      content: { total: 42, available: 18, rented: 20, repair: 4 },
+    });
 
     expect(result).toEqual({
       ownedCount: 42,
@@ -22,67 +22,73 @@ describe("toVehicleSummaryCounts", () => {
     });
   });
 
-  it("unwraps a checklist-style envelope response (안 A, D1 unresolved)", () => {
+  it("maps a 0-count content object without treating 0 as missing data (AC3)", () => {
     const result = toVehicleSummaryCounts({
       statusCode: 200,
       error: null,
-      content: [
-        { status: "OWNED", count: 5 },
-        { status: "AVAILABLE", count: 3 },
-        { status: "RENTED", count: 1 },
-        { status: "UNAVAILABLE", count: 0 },
-      ],
+      content: { total: 0, available: 0, rented: 0, repair: 0 },
     });
 
     expect(result).toEqual({
-      ownedCount: 5,
-      availableCount: 3,
-      rentedCount: 1,
+      ownedCount: 0,
+      availableCount: 0,
+      rentedCount: 0,
       unavailableCount: 0,
     });
   });
 
-  it("falls back a missing status to 0 instead of throwing", () => {
-    const result = toVehicleSummaryCounts([
-      { status: "OWNED", count: 10 },
-      { status: "AVAILABLE", count: 2 },
-      { status: "RENTED", count: 7 },
-      // UNAVAILABLE omitted on purpose
-    ]);
-
-    expect(result.unavailableCount).toBe(0);
-    expect(result).toEqual({
-      ownedCount: 10,
-      availableCount: 2,
-      rentedCount: 7,
-      unavailableCount: 0,
-    });
-  });
-
-  it("treats a duplicate status entry as a contract mismatch", () => {
+  it("treats statusCode !== 200 as a fetch error, not a contract mismatch", () => {
     expect(() =>
-      toVehicleSummaryCounts([
-        { status: "OWNED", count: 10 },
-        { status: "OWNED", count: 99 },
-      ]),
-    ).toThrow(VehicleSummaryContractMismatchError);
+      toVehicleSummaryCounts({
+        statusCode: 500,
+        error: "Internal Server Error",
+        content: null,
+      }),
+    ).toThrow(VehicleSummaryFetchError);
   });
 
-  it("treats an unknown status value as a contract mismatch", () => {
+  it("treats a non-null error field as a fetch error even with statusCode 200", () => {
     expect(() =>
-      toVehicleSummaryCounts([{ status: "SCRAPPED", count: 1 }]),
-    ).toThrow(VehicleSummaryContractMismatchError);
+      toVehicleSummaryCounts({
+        statusCode: 200,
+        error: "UNEXPECTED",
+        content: { total: 1, available: 1, rented: 0, repair: 0 },
+      }),
+    ).toThrow(VehicleSummaryFetchError);
   });
 
-  it("treats a response that is neither a bare array nor a content-array envelope as a contract mismatch", () => {
-    expect(() => toVehicleSummaryCounts({ unexpected: "shape" })).toThrow(
+  it("treats a response that is not an object as a contract mismatch", () => {
+    expect(() => toVehicleSummaryCounts("unexpected")).toThrow(
       VehicleSummaryContractMismatchError,
     );
   });
 
-  it("treats a negative or non-numeric count as a contract mismatch", () => {
+  it("treats a missing statusCode field as a contract mismatch", () => {
     expect(() =>
-      toVehicleSummaryCounts([{ status: "OWNED", count: -1 }]),
+      toVehicleSummaryCounts({
+        error: null,
+        content: { total: 1, available: 1, rented: 0, repair: 0 },
+      }),
+    ).toThrow(VehicleSummaryContractMismatchError);
+  });
+
+  it("treats a content object missing a required field as a contract mismatch", () => {
+    expect(() =>
+      toVehicleSummaryCounts({
+        statusCode: 200,
+        error: null,
+        content: { total: 1, available: 1, rented: 0 },
+      }),
+    ).toThrow(VehicleSummaryContractMismatchError);
+  });
+
+  it("treats a negative or non-numeric content field as a contract mismatch", () => {
+    expect(() =>
+      toVehicleSummaryCounts({
+        statusCode: 200,
+        error: null,
+        content: { total: -1, available: 1, rented: 0, repair: 0 },
+      }),
     ).toThrow(VehicleSummaryContractMismatchError);
   });
 });

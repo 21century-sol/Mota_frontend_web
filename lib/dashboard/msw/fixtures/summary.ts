@@ -1,17 +1,17 @@
-import type { VehicleStatusCountDto } from "@/types/dashboard/summary";
+import type { DashboardSummaryContentDto } from "@/types/dashboard/summary";
 
-/** Normal scenario: all 4 statuses present with distinct synthetic non-zero values (AC1). */
-export const summaryNormalFixture = [
-  { status: "OWNED", count: 42 },
-  { status: "AVAILABLE", count: 18 },
-  { status: "RENTED", count: 20 },
-  { status: "UNAVAILABLE", count: 4 },
-] satisfies VehicleStatusCountDto[];
+/** Normal scenario: 4 distinct synthetic non-zero values (AC1). */
+export const summaryNormalFixture = {
+  total: 42,
+  available: 18,
+  rented: 20,
+  repair: 4,
+} satisfies DashboardSummaryContentDto;
 
-/** Empty scenario: all 4 statuses present but count=0 (AC3 — "0대" must not read as an error). */
-export const summaryEmptyFixture = [
-  { status: "OWNED", count: 0 },
-  { status: "AVAILABLE", count: 0 },
-  { status: "RENTED", count: 0 },
-  { status: "UNAVAILABLE", count: 0 },
-] satisfies VehicleStatusCountDto[];
+/** Empty scenario: all 4 fields 0 (AC3 — "0대" must not read as an error). */
+export const summaryEmptyFixture = {
+  total: 0,
+  available: 0,
+  rented: 0,
+  repair: 0,
+} satisfies DashboardSummaryContentDto;
