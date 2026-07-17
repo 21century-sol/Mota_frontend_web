@@ -84,15 +84,30 @@ const config: Config = {
         "dashboard-status-available-bg": "rgba(22,179,56,0.1)",
         "dashboard-status-rented-bg": "rgba(251,150,61,0.1)",
         "dashboard-status-repair-bg": "rgba(251,70,61,0.1)",
+
+        // Dashboard vehicle detail tokens (issue #15, Figma file
+        // nt8U8I48Rcfz8LGNqYvRZv, root 1:13715 / 1:14480). New values not present
+        // in the #12 alert tokens above — intentionally NOT reused
+        // (`.claude/handoffs/15-figma-specs.md` Token Mapping: different hex).
+        "dashboard-tire-caution": "#ffbc01", // 타이어 주의(CAUTION) 강조 오버레이/배지
+        "dashboard-tire-caution-bg": "rgba(255,188,1,0.16)",
+        "dashboard-tire-warning": "#ff1935", // 타이어 위험(WARNING) 강조 오버레이/배지
+        "dashboard-tire-warning-bg": "rgba(255,25,53,0.16)",
+        "dashboard-usage-text": "#141415", // 이용 이력 탭 본문 텍스트
+        "dashboard-usage-text-muted": "#909090", // 이용 이력 탭 전화번호 텍스트
+        "dashboard-usage-text-subtle": "#969696", // 이용 이력 탭 리포트 링크 텍스트
       },
       borderRadius: {
         card: "12px",
         btn: "18px",
         "dashboard-nav": "10px", // 비활성 사이드바 메뉴 radius (표준 스케일 밖 값, node 2483:30897)
         "dashboard-card": "24px", // 요약 카드 radius (node 2361:23653 등), 기존 `card`(12px)와 별개
+        "dashboard-banner": "20px", // 차량 상세 "점검 필요" 배너 radius (issue #15, node 1:13916)
+        "dashboard-tire-card": "14px", // 타이어 카드 radius (issue #15)
       },
       boxShadow: {
         "dashboard-card": "0px 2px 8px rgba(0,0,0,0.08)", // 요약 카드 그림자 (node 2361:23652 하위)
+        "dashboard-tire-card": "0px 14px 54px rgba(0,0,0,0.03)", // 타이어 카드 그림자 (issue #15)
       },
       dropShadow: {
         // 차트 강조 포인트 툴팁 그림자 (node 2361:23766). SVG 요소는 CSS `box-shadow`가

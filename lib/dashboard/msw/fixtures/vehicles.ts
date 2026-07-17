@@ -1,7 +1,20 @@
 import type {
+  AlertHistoryItem,
+  PageInfo,
+  ReservationSummaryDto,
+  TireDetail,
+  TireTrendMetric,
+  TireTrendPoint,
+  UsageHistoryItem,
+  VehicleAlertHistoryResponse,
+  VehicleDetailDto,
+  VehicleDetailResponse,
   VehicleDto,
   VehicleListFilters,
   VehicleManagementListResponse,
+  VehicleTireDetailResponse,
+  VehicleTireTrendResponse,
+  VehicleUsageHistoryResponse,
 } from "@/types/dashboard/vehicle";
 
 /**
@@ -223,4 +236,310 @@ export function toVehicleManagementListResponse(
       vehicles,
     },
   };
+}
+
+// ---------------------------------------------------------------------------
+// Issue #15 — `/dashboard/vehicles/[vehicleId]` detail-screen fixtures.
+//
+// 4 of the 12 list vehicles above get a full detail fixture set (`.claude/handoffs/15-api-specs.md`
+// fixture table): vehicle-mgmt-001 (all-normal), -003 (WARNING+CAUTION,
+// paginated usage), -004 (null-value coverage, empty usage/alerts), -007
+// (CAUTION-only boundary). `VEHICLE_DETAIL_NOT_FOUND_ID` is a 5th id that is
+// deliberately absent from every fixture map below (AC6).
+// ---------------------------------------------------------------------------
+
+export const VEHICLE_DETAIL_NOT_FOUND_ID = "vehicle-mgmt-999";
+
+function findListFixture(vehicleId: string): VehicleDto {
+  const found = vehiclesNormalFixture.find((vehicle) => vehicle.vehicleId === vehicleId);
+  if (!found) {
+    throw new Error(`fixtures/vehicles.ts: no list fixture entry for ${vehicleId}`);
+  }
+  return found;
+}
+
+function toDetailDto(
+  vehicleId: string,
+  overrides: Pick<
+    VehicleDetailDto,
+    "photoUrls" | "options" | "totalMileageKm" | "lastInspectedAt"
+  >,
+): VehicleDetailDto {
+  return { ...findListFixture(vehicleId), ...overrides };
+}
+
+/** Distinct per-index URL (not one repeated constant) so React list keys in `VehicleInfoPanel` stay unique. */
+function placeholderPhotos(vehicleId: string, count: number): string[] {
+  return Array.from(
+    { length: count },
+    (_, index) =>
+      `https://mota-app.duckdns.org/uploads/vehicles/${vehicleId}-detail-${index + 1}.jpg`,
+  );
+}
+
+export const vehicleDetailFixturesById: Record<string, VehicleDetailDto> = {
+  "vehicle-mgmt-001": toDetailDto("vehicle-mgmt-001", {
+    photoUrls: placeholderPhotos("vehicle-mgmt-001", 3),
+    options: ["네비게이션", "후방카메라", "하이패스"],
+    totalMileageKm: 15230,
+    lastInspectedAt: "2026-06-01T00:00:00.000Z",
+  }),
+  "vehicle-mgmt-003": toDetailDto("vehicle-mgmt-003", {
+    photoUrls: placeholderPhotos("vehicle-mgmt-003", 2),
+    options: ["네비게이션", "선루프", "통풍시트"],
+    totalMileageKm: 42010,
+    lastInspectedAt: "2026-05-20T00:00:00.000Z",
+  }),
+  "vehicle-mgmt-004": toDetailDto("vehicle-mgmt-004", {
+    photoUrls: placeholderPhotos("vehicle-mgmt-004", 1),
+    options: [],
+    totalMileageKm: 8320,
+    lastInspectedAt: null,
+  }),
+  "vehicle-mgmt-007": toDetailDto("vehicle-mgmt-007", {
+    photoUrls: placeholderPhotos("vehicle-mgmt-007", 3),
+    options: ["네비게이션", "하이패스"],
+    totalMileageKm: 51200,
+    lastInspectedAt: "2026-04-10T00:00:00.000Z",
+  }),
+} satisfies Record<string, VehicleDetailDto>;
+
+/** `null` = no in-progress/upcoming reservation (AC9). */
+export const reservationFixturesById: Record<string, ReservationSummaryDto | null> = {
+  "vehicle-mgmt-001": null,
+  "vehicle-mgmt-003": {
+    reservationId: "reservation-003-01",
+    renterName: "김민준",
+    startAt: "2026-07-15T00:00:00.000Z",
+    returnAt: "2026-07-20T00:00:00.000Z",
+  },
+  "vehicle-mgmt-004": null,
+  "vehicle-mgmt-007": {
+    reservationId: "reservation-007-01",
+    renterName: "이서연",
+    startAt: "2026-07-05T04:00:00.000Z",
+    returnAt: "2026-07-18T00:00:00.000Z",
+  },
+} satisfies Record<string, ReservationSummaryDto | null>;
+
+export const alertHistoryFixturesById: Record<string, AlertHistoryItem[]> = {
+  "vehicle-mgmt-001": [
+    {
+      id: "alert-hist-001-01",
+      tirePosition: null,
+      message: "정기 점검이 완료되었습니다.",
+      occurredAt: "2026-06-01T02:00:00.000Z",
+    },
+    {
+      id: "alert-hist-001-02",
+      tirePosition: "FR",
+      message: "타이어 공기압을 점검했습니다.",
+      occurredAt: "2026-06-15T05:00:00.000Z",
+    },
+  ],
+  "vehicle-mgmt-003": [
+    {
+      id: "alert-hist-003-01",
+      tirePosition: "FR",
+      message: "공기압이 위험 수준입니다.",
+      occurredAt: "2026-07-10T01:00:00.000Z",
+    },
+    {
+      id: "alert-hist-003-02",
+      tirePosition: "FL",
+      message: "마모도가 주의 수준입니다.",
+      occurredAt: "2026-07-08T03:00:00.000Z",
+    },
+    {
+      id: "alert-hist-003-03",
+      tirePosition: null,
+      message: "정기 점검 알림이 도착했습니다.",
+      occurredAt: "2026-06-20T06:00:00.000Z",
+    },
+  ],
+  // Empty (AC11).
+  "vehicle-mgmt-004": [],
+  "vehicle-mgmt-007": [
+    {
+      id: "alert-hist-007-01",
+      tirePosition: "RL",
+      message: "휠 얼라이먼트 점검이 필요합니다.",
+      occurredAt: "2026-07-06T02:00:00.000Z",
+    },
+  ],
+} satisfies Record<string, AlertHistoryItem[]>;
+
+function buildUsageHistoryItems(vehicleId: string, count: number): UsageHistoryItem[] {
+  const renters: Array<{ name: string; phone: string }> = [
+    { name: "박지호", phone: "010-0000-0001" },
+    { name: "최유진", phone: "010-0000-0002" },
+    { name: "정하윤", phone: "010-0000-0003" },
+    { name: "강도현", phone: "010-0000-0004" },
+    { name: "윤서준", phone: "010-0000-0005" },
+    { name: "임채원", phone: "010-0000-0006" },
+    { name: "한지민", phone: "010-0000-0007" },
+    { name: "오승우", phone: "010-0000-0008" },
+    { name: "서연우", phone: "010-0000-0009" },
+    { name: "배수아", phone: "010-0000-0010" },
+  ];
+
+  return Array.from({ length: count }, (_, index) => {
+    const renter = renters[index % renters.length];
+    const rentedAt = new Date(Date.UTC(2026, 5, 1 + index * 3)).toISOString();
+    const returnedAt = new Date(Date.UTC(2026, 5, 3 + index * 3)).toISOString();
+    return {
+      id: `usage-hist-${vehicleId}-${String(index + 1).padStart(2, "0")}`,
+      renterName: renter.name,
+      renterPhone: renter.phone,
+      rentedAt,
+      returnedAt,
+      mileageKm: 120 + index * 37,
+      alertCount: index % 3 === 0 ? 0 : (index % 3),
+    } satisfies UsageHistoryItem;
+  });
+}
+
+export const usageHistoryFixturesById: Record<string, UsageHistoryItem[]> = {
+  "vehicle-mgmt-001": buildUsageHistoryItems("vehicle-mgmt-001", 5),
+  "vehicle-mgmt-003": buildUsageHistoryItems("vehicle-mgmt-003", 10),
+  // Empty (AC20).
+  "vehicle-mgmt-004": [],
+  "vehicle-mgmt-007": buildUsageHistoryItems("vehicle-mgmt-007", 3),
+} satisfies Record<string, UsageHistoryItem[]>;
+
+export const tireDetailFixturesById: Record<string, TireDetail[]> = {
+  "vehicle-mgmt-001": [
+    { position: "FL", status: "NORMAL", expectedReplacementAt: 8400, pressureKpa: 32, temperatureCelsius: 24, alignmentDeg: 0.2, treadDepthMm: 18 },
+    { position: "FR", status: "NORMAL", expectedReplacementAt: 8600, pressureKpa: 32, temperatureCelsius: 24, alignmentDeg: 0.1, treadDepthMm: 19 },
+    { position: "RL", status: "NORMAL", expectedReplacementAt: 9200, pressureKpa: 33, temperatureCelsius: 23, alignmentDeg: 0.2, treadDepthMm: 21 },
+    { position: "RR", status: "NORMAL", expectedReplacementAt: 9100, pressureKpa: 33, temperatureCelsius: 23, alignmentDeg: 0.1, treadDepthMm: 20 },
+  ],
+  // FR=WARNING, FL=CAUTION (AC15 banner, AC17 highlight) — values kept consistent
+  // with `status` (`.claude/handoffs/15-figma-specs.md` "Discovered Mock Inconsistencies").
+  "vehicle-mgmt-003": [
+    { position: "FL", status: "CAUTION", expectedReplacementAt: 2100, pressureKpa: 27, temperatureCelsius: 31, alignmentDeg: 0.9, treadDepthMm: 41 },
+    { position: "FR", status: "WARNING", expectedReplacementAt: 400, pressureKpa: 19, temperatureCelsius: 38, alignmentDeg: 1.8, treadDepthMm: 68 },
+    { position: "RL", status: "NORMAL", expectedReplacementAt: 8700, pressureKpa: 32, temperatureCelsius: 24, alignmentDeg: 0.1, treadDepthMm: 17 },
+    { position: "RR", status: "NORMAL", expectedReplacementAt: 8500, pressureKpa: 32, temperatureCelsius: 24, alignmentDeg: 0.2, treadDepthMm: 18 },
+  ],
+  // Null-value coverage (AC16) — status stays NORMAL, every measurement is null.
+  "vehicle-mgmt-004": [
+    { position: "FL", status: "NORMAL", expectedReplacementAt: null, pressureKpa: null, temperatureCelsius: null, alignmentDeg: null, treadDepthMm: null },
+    { position: "FR", status: "NORMAL", expectedReplacementAt: null, pressureKpa: null, temperatureCelsius: null, alignmentDeg: null, treadDepthMm: null },
+    { position: "RL", status: "NORMAL", expectedReplacementAt: null, pressureKpa: null, temperatureCelsius: null, alignmentDeg: null, treadDepthMm: null },
+    { position: "RR", status: "NORMAL", expectedReplacementAt: null, pressureKpa: null, temperatureCelsius: null, alignmentDeg: null, treadDepthMm: null },
+  ],
+  // CAUTION-only boundary (no WARNING) — banner still shows, all 4 highlighted with the caution color.
+  "vehicle-mgmt-007": [
+    { position: "FL", status: "CAUTION", expectedReplacementAt: 2500, pressureKpa: 28, temperatureCelsius: 30, alignmentDeg: 0.8, treadDepthMm: 39 },
+    { position: "FR", status: "CAUTION", expectedReplacementAt: 2600, pressureKpa: 28, temperatureCelsius: 30, alignmentDeg: 0.7, treadDepthMm: 38 },
+    { position: "RL", status: "CAUTION", expectedReplacementAt: 2400, pressureKpa: 27, temperatureCelsius: 31, alignmentDeg: 0.9, treadDepthMm: 40 },
+    { position: "RR", status: "CAUTION", expectedReplacementAt: 2450, pressureKpa: 27, temperatureCelsius: 31, alignmentDeg: 0.8, treadDepthMm: 40 },
+  ],
+} satisfies Record<string, TireDetail[]>;
+
+const TIRE_TREND_DATES = [
+  "2026-06-01T00:00:00.000Z",
+  "2026-06-08T00:00:00.000Z",
+  "2026-06-15T00:00:00.000Z",
+  "2026-06-22T00:00:00.000Z",
+  "2026-06-29T00:00:00.000Z",
+  "2026-07-06T00:00:00.000Z",
+];
+
+const TIRE_TREND_METRIC_BASELINES: Record<
+  TireTrendMetric,
+  { baseline: number; step: number }
+> = {
+  PRESSURE: { baseline: 33, step: -0.4 },
+  TEMPERATURE: { baseline: 22, step: 0.6 },
+  ALIGNMENT: { baseline: 0.1, step: 0.05 },
+  WEAR: { baseline: 12, step: 3 },
+};
+
+function buildTireTrendPoints(metric: TireTrendMetric, wheelOffset: number): TireTrendPoint[] {
+  const { baseline, step } = TIRE_TREND_METRIC_BASELINES[metric];
+  return TIRE_TREND_DATES.map((date, index) => {
+    const value = Math.round((baseline + wheelOffset + step * index) * 10) / 10;
+    return { date, fl: value, fr: value + 0.5, rl: value - 0.3, rr: value + 0.2 };
+  });
+}
+
+function buildTireTrendFixtureSet(wheelOffset: number): Record<TireTrendMetric, TireTrendPoint[]> {
+  return {
+    PRESSURE: buildTireTrendPoints("PRESSURE", wheelOffset),
+    TEMPERATURE: buildTireTrendPoints("TEMPERATURE", wheelOffset),
+    ALIGNMENT: buildTireTrendPoints("ALIGNMENT", wheelOffset),
+    WEAR: buildTireTrendPoints("WEAR", wheelOffset),
+  };
+}
+
+/** All-null trend points for vehicle-mgmt-004 (AC16 null-value coverage extended to the chart). */
+function buildAllNullTireTrendFixtureSet(): Record<TireTrendMetric, TireTrendPoint[]> {
+  const nullPoints: TireTrendPoint[] = TIRE_TREND_DATES.map((date) => ({
+    date,
+    fl: null,
+    fr: null,
+    rl: null,
+    rr: null,
+  }));
+  return { PRESSURE: nullPoints, TEMPERATURE: nullPoints, ALIGNMENT: nullPoints, WEAR: nullPoints };
+}
+
+export const tireTrendFixturesById: Record<string, Record<TireTrendMetric, TireTrendPoint[]>> = {
+  "vehicle-mgmt-001": buildTireTrendFixtureSet(0),
+  "vehicle-mgmt-003": buildTireTrendFixtureSet(4),
+  "vehicle-mgmt-004": buildAllNullTireTrendFixtureSet(),
+  "vehicle-mgmt-007": buildTireTrendFixtureSet(2),
+};
+
+export function toVehicleDetailResponse(vehicleId: string): VehicleDetailResponse | null {
+  const vehicle = vehicleDetailFixturesById[vehicleId];
+  if (!vehicle) return null;
+  return {
+    statusCode: 200,
+    error: null,
+    content: {
+      vehicle,
+      reservation: reservationFixturesById[vehicleId] ?? null,
+    },
+  };
+}
+
+export function toVehicleAlertHistoryResponse(vehicleId: string): VehicleAlertHistoryResponse {
+  return {
+    statusCode: 200,
+    error: null,
+    content: { alerts: alertHistoryFixturesById[vehicleId] ?? [] },
+  };
+}
+
+export function toVehicleUsageHistoryResponse(
+  vehicleId: string,
+  page: number,
+  pageSize: number,
+): VehicleUsageHistoryResponse {
+  const allItems = usageHistoryFixturesById[vehicleId] ?? [];
+  const totalCount = allItems.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const start = (page - 1) * pageSize;
+  const items = allItems.slice(start, start + pageSize);
+  const pageInfo: PageInfo = { page, pageSize, totalCount, totalPages };
+  return { statusCode: 200, error: null, content: { items, pageInfo } };
+}
+
+export function toVehicleTireDetailResponse(vehicleId: string): VehicleTireDetailResponse {
+  return {
+    statusCode: 200,
+    error: null,
+    content: { tires: tireDetailFixturesById[vehicleId] ?? tireDetailFixturesById["vehicle-mgmt-001"] },
+  };
+}
+
+export function toVehicleTireTrendResponse(
+  vehicleId: string,
+  metric: TireTrendMetric,
+): VehicleTireTrendResponse {
+  const set = tireTrendFixturesById[vehicleId] ?? tireTrendFixturesById["vehicle-mgmt-001"];
+  return { statusCode: 200, error: null, content: { metric, points: set[metric] } };
 }

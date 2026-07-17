@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Link from "next/link";
 import { Car } from "lucide-react";
 
 import type {
@@ -105,6 +106,16 @@ function CellLabel({ children }: { children: string }) {
  * `table*` also drops its implicit ARIA table semantics in evergreen
  * browsers, so screen readers don't announce a confusing "1-column table" on
  * narrow viewports.
+ *
+ * (Issue #15, PM AC1/AC2) Each row links to `/dashboard/vehicles/{vehicleId}`
+ * via a "stretched link": the `<tr>` is `position: relative` and the `<Link>`
+ * lives inside the last `<td>` as `absolute inset-0`, so it visually covers
+ * the whole row (click/keyboard-focus anywhere) without adding an extra
+ * unlabeled `<td>` that would misalign the 6-column `<thead>`. The link's own
+ * text is empty/`aria-hidden` — its accessible name comes from `aria-label`,
+ * since the row's visible text (plate number, model, status…) already sits in
+ * separate sibling `<td>`s that a plain nested `<a>` text label couldn't
+ * describe together.
  */
 export function VehicleTable({ vehicles }: { vehicles: VehicleListItem[] }) {
   return (
@@ -137,7 +148,7 @@ export function VehicleTable({ vehicles }: { vehicles: VehicleListItem[] }) {
           {vehicles.map((vehicle) => (
             <tr
               key={vehicle.vehicleId}
-              className="flex flex-col gap-2 border-b border-dashboard-vehicles-border p-3 last:border-b-0 md:table-row md:gap-0 md:p-0"
+              className="relative flex flex-col gap-2 border-b border-dashboard-vehicles-border p-3 outline-none last:border-b-0 hover:bg-dashboard-vehicles-surface/60 md:table-row md:gap-0 md:p-0"
             >
               <td className="flex items-center md:table-cell md:px-3 md:py-2 md:align-middle">
                 <VehicleThumbnail
@@ -168,6 +179,11 @@ export function VehicleTable({ vehicles }: { vehicles: VehicleListItem[] }) {
               <td className="flex items-center text-sm text-dashboard-vehicles-title md:table-cell md:px-3 md:py-2 md:align-middle">
                 <CellLabel>반납일</CellLabel>
                 {formatVehicleDateLabel(vehicle.returnedAt)}
+                <Link
+                  href={`/dashboard/vehicles/${vehicle.vehicleId}`}
+                  aria-label={`${vehicle.plateNumber} ${vehicle.manufacturer} ${vehicle.model} 상세보기`}
+                  className="absolute inset-0 z-10 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-dashboard-sidebar focus-visible:ring-offset-2"
+                />
               </td>
             </tr>
           ))}
