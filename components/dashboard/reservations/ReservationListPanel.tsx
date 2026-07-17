@@ -10,25 +10,36 @@ import { ReservationTable } from "@/components/dashboard/reservations/Reservatio
 import { ReservationPagination } from "@/components/dashboard/reservations/ReservationPagination";
 
 /**
- * `/dashboard/reservations` "대여 현황" panel (issue #16). A Server Component —
- * `status`/`items`/`pageInfo` are already-computed props (see
- * `ReservationsSection`), so this component itself needs no hooks; only the
- * interactive leaves (`ReservationStatusTabs`, `ReservationUpdateBar`,
- * `ReservationPagination`) are Client Components, kept as small as possible
- * (CLAUDE.md §4 App Router 렌더링 경계).
+ * `/dashboard/reservations` "대여 현황" panel (issue #16, layout corrected in
+ * #29). A Server Component — `status`/`items`/`pageInfo`/`rentedOn`/
+ * `returnedOn` are already-computed props (see `ReservationsSection`), so
+ * this component itself needs no hooks; only the interactive leaves
+ * (`ReservationStatusTabs`, `ReservationDateRangeTriggers`,
+ * `ReservationUpdateBar`, `ReservationPagination`) are Client Components,
+ * kept as small as possible (CLAUDE.md §4 App Router 렌더링 경계).
  *
  * Takes `items`/`pageInfo` directly (rather than recomputing from the
  * fixture) so the AC8 empty state can be exercised in a component test with a
  * synthetic empty list, independent of the actual fixture contents.
+ *
+ * Two-row layout (issue #29 AC1, fixing the #16 layout bug where the date
+ * triggers shared a row with the status tabs and the update bar was a
+ * separate right-aligned row): row 1 is the status tabs alone
+ * (left-aligned, full width); row 2 puts the date triggers on the left and
+ * the update-time text + reset button on the right, in the same row.
  */
 export function ReservationListPanel({
   status,
   items,
   pageInfo,
+  rentedOn,
+  returnedOn,
 }: {
   status: ReservationStatus | undefined;
   items: ReservationItem[];
   pageInfo: ReservationPageInfo;
+  rentedOn?: string;
+  returnedOn?: string;
 }) {
   return (
     <section aria-labelledby="reservations-heading" className="flex flex-col gap-6">
@@ -40,12 +51,16 @@ export function ReservationListPanel({
       </h1>
 
       <div className="flex flex-col gap-4 rounded-dashboard-card bg-white p-6 shadow-dashboard-card">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <ReservationStatusTabs currentStatus={status} />
-          <ReservationDateRangeTriggers />
-        </div>
+        <ReservationStatusTabs currentStatus={status} />
 
-        <ReservationUpdateBar />
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <ReservationDateRangeTriggers
+            currentStatus={status}
+            rentedOn={rentedOn}
+            returnedOn={returnedOn}
+          />
+          <ReservationUpdateBar />
+        </div>
 
         {items.length === 0 ? (
           <p

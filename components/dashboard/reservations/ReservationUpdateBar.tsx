@@ -13,7 +13,10 @@ import { buildReservationListHref } from "@/lib/dashboard/reservations/url";
  * PM Safe Assumption A2: since the list is a local fixture, there is no
  * server data to "refresh" — the reset button instead clears the filter
  * state back to 전체/1페이지 (`buildReservationListHref({})`), matching the
- * `lib/dashboard/vehicles/url.ts` filter-reset precedent.
+ * `lib/dashboard/vehicles/url.ts` filter-reset precedent. `buildReservationListHref({})`
+ * omits every param (including `rentedOn`/`returnedOn`), so this same call
+ * already satisfies issue #29 AC10 ("리셋 버튼 클릭 시 날짜 필터도 초기화") with no
+ * extra logic.
  */
 export function ReservationUpdateBar() {
   const router = useRouter();

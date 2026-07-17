@@ -182,10 +182,11 @@ export const RESERVATION_FIXTURES = [
 ] satisfies ReservationItem[];
 
 /**
- * Update-time text shown next to the reset button (Figma Confirmed Design
- * Facts: "새로고침/리셋 아이콘 존재: 업데이트 시간 텍스트 옆 원형 버튼"). The exact
- * copy was not captured in the figma handoff, so this is a fixed, static
- * fixture string — never generated from `new Date()` (CLAUDE.md §6) — kept
- * next to the other fixture data it describes.
+ * Update-time text shown next to the reset button. Corrected in issue #29 to
+ * the literal Figma copy (`.claude/handoffs/29-pm-breakdown.md` Confirmed
+ * Facts: "업데이트 시간 : 26/07/08 20:41", superseding the placeholder format
+ * used in #16). A fixed, static fixture string — never generated from
+ * `new Date()` (CLAUDE.md §6) — kept next to the other fixture data it
+ * describes.
  */
-export const RESERVATIONS_UPDATED_AT_LABEL = "업데이트 2026.07.19 09:00";
+export const RESERVATIONS_UPDATED_AT_LABEL = "업데이트 시간 : 26/07/08 20:41";

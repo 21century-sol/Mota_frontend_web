@@ -55,4 +55,25 @@ describe("ReservationListPanel (AC1, AC8, AC11)", () => {
     // against a totalCount of 9 → "1-8".
     expect(screen.getByText("전체 9건 중 1-8 표시")).toBeInTheDocument();
   });
+
+  it("puts the status tabs on their own row, separate from the date triggers/update bar row (issue #29, AC1)", () => {
+    render(<ReservationListPanel status={undefined} items={[ITEM]} pageInfo={PAGE_INFO} />);
+
+    const tabGroup = screen.getByRole("group", { name: "예약 상태 필터" });
+    const rentedTrigger = screen.getByRole("button", { name: "대여일 선택" });
+    const resetButton = screen.getByRole("button", { name: "필터 초기화" });
+
+    // Walk up from the reset button until we find the row it shares with the
+    // date trigger (their closest common ancestor), then confirm the status
+    // tab group is not part of that same row.
+    let sharedRow: HTMLElement | null = resetButton.parentElement;
+    while (sharedRow && !sharedRow.contains(rentedTrigger)) {
+      sharedRow = sharedRow.parentElement;
+    }
+
+    expect(sharedRow).not.toBeNull();
+    expect(sharedRow?.contains(rentedTrigger)).toBe(true);
+    expect(sharedRow?.contains(resetButton)).toBe(true);
+    expect(sharedRow?.contains(tabGroup)).toBe(false);
+  });
 });

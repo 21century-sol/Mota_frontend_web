@@ -2,20 +2,25 @@ import { describe, expect, it } from "vitest";
 
 import {
   RESERVATIONS_PAGE_SIZE,
+  filterReservationsByDateRange,
   filterReservationsByStatus,
   paginateReservations,
 } from "@/lib/dashboard/reservations/list";
 import type { ReservationItem } from "@/types/dashboard/reservation";
 
-function makeItem(id: string, status: ReservationItem["status"]): ReservationItem {
+function makeItem(
+  id: string,
+  status: ReservationItem["status"],
+  dates: { rentedAt?: string; returnedAt?: string } = {},
+): ReservationItem {
   return {
     id,
     renterName: `renter-${id}`,
     renterPhone: "010-0000-0000",
     plateNumber: "12가 3456",
     vehicleModel: "아반떼 하이브리드",
-    rentedAt: "2026-07-01",
-    returnedAt: "2026-07-05",
+    rentedAt: dates.rentedAt ?? "2026-07-01",
+    returnedAt: dates.returnedAt ?? "2026-07-05",
     status,
   };
 }
@@ -80,5 +85,41 @@ describe("paginateReservations", () => {
     const { items: page1, pageInfo } = paginateReservations(items, 1, 5);
     expect(page1).toHaveLength(5);
     expect(pageInfo.totalPages).toBe(2);
+  });
+});
+
+describe("filterReservationsByDateRange (issue #29, AC8)", () => {
+  const items = [
+    makeItem("1", "RENTED", { rentedAt: "2026-07-10", returnedAt: "2026-07-15" }),
+    makeItem("2", "RETURNED", { rentedAt: "2026-07-10", returnedAt: "2026-07-20" }),
+    makeItem("3", "RENTED", { rentedAt: "2026-07-12", returnedAt: "2026-07-20" }),
+  ];
+
+  it("returns all items unchanged when both dates are undefined", () => {
+    expect(filterReservationsByDateRange(items, undefined, undefined)).toEqual(items);
+  });
+
+  it("filters by rentedOn alone (exact-day match)", () => {
+    expect(filterReservationsByDateRange(items, "2026-07-10", undefined)).toEqual([
+      items[0],
+      items[1],
+    ]);
+  });
+
+  it("filters by returnedOn alone (exact-day match)", () => {
+    expect(filterReservationsByDateRange(items, undefined, "2026-07-20")).toEqual([
+      items[1],
+      items[2],
+    ]);
+  });
+
+  it("applies both filters with AND semantics", () => {
+    expect(filterReservationsByDateRange(items, "2026-07-10", "2026-07-20")).toEqual([
+      items[1],
+    ]);
+  });
+
+  it("returns an empty array when no item matches either date", () => {
+    expect(filterReservationsByDateRange(items, "2099-01-01", undefined)).toEqual([]);
   });
 });
