@@ -15,9 +15,15 @@ export const RESERVATIONS_LIST_PATH = "/dashboard/reservations";
 export interface ReservationListParams {
   status: ReservationStatus | undefined;
   page: number;
+  /** `YYYY-MM-DD`, from the "대여일" calendar popover (issue #29, AC8). */
+  rentedOn: string | undefined;
+  /** `YYYY-MM-DD`, from the "반납일" calendar popover (issue #29, AC8). */
+  returnedOn: string | undefined;
 }
 
-/** An unrecognized/duplicated `status` or a non-positive/non-integer `page` degrades to the default instead of throwing (AC5). */
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+/** An unrecognized/duplicated `status` or a non-positive/non-integer `page` degrades to the default instead of throwing (AC5). Same degrade-instead-of-throw treatment applies to a malformed `rentedOn`/`returnedOn` (issue #29). */
 export function parseReservationListParams(
   searchParams: Record<string, string | string[] | undefined>,
 ): ReservationListParams {
@@ -29,6 +35,8 @@ export function parseReservationListParams(
         ? status
         : undefined,
     page: parseReservationPage(searchParams.page),
+    rentedOn: parseReservationIsoDate(searchParams.rentedOn),
+    returnedOn: parseReservationIsoDate(searchParams.returnedOn),
   };
 }
 
@@ -38,21 +46,32 @@ function parseReservationPage(value: string | string[] | undefined): number {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
 }
 
+function parseReservationIsoDate(value: string | string[] | undefined): string | undefined {
+  return typeof value === "string" && ISO_DATE_PATTERN.test(value) ? value : undefined;
+}
+
 /**
- * `status` is omitted for the "전체" tab; `page` is omitted at page 1. A tab
- * click always passes a fresh `page` (or omits it), never the caller's
- * previous page, so switching tabs naturally resets pagination to page 1
- * (AC4) without extra reset logic at the call site.
+ * `status`/`rentedOn`/`returnedOn` are omitted when unset; `page` is omitted
+ * at page 1. A tab click or date selection always passes a fresh `page` (or
+ * omits it), never the caller's previous page, so switching tabs/dates
+ * naturally resets pagination to page 1 (AC4/AC8) without extra reset logic
+ * at the call site. Calling with `{}` therefore also fully resets the filter
+ * (status + page + date range), which `ReservationUpdateBar`'s reset button
+ * relies on (AC10).
  */
 export function buildReservationListHref(params: {
   status?: ReservationStatus;
   page?: number;
+  rentedOn?: string;
+  returnedOn?: string;
 }): string {
   const search = new URLSearchParams();
   if (params.status) search.set("status", params.status);
   if (params.page !== undefined && params.page > 1) {
     search.set("page", String(params.page));
   }
+  if (params.rentedOn) search.set("rentedOn", params.rentedOn);
+  if (params.returnedOn) search.set("returnedOn", params.returnedOn);
   const query = search.toString();
   return query ? `${RESERVATIONS_LIST_PATH}?${query}` : RESERVATIONS_LIST_PATH;
 }

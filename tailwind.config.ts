@@ -111,6 +111,15 @@ const config: Config = {
         "dashboard-reservation-status-rented": "#fb963d", // 배지 "대여 중"
         "dashboard-reservation-status-returned": "#969696", // 배지 "반납완료"
         "dashboard-reservation-page-border": "#eee", // 비활성 페이지네이션 숫자 버튼 보더
+
+        // Reservation date-picker popover tokens (issue #29, Figma file
+        // nt8U8I48Rcfz8LGNqYvRZv, node 1:12762 "달력"). (.claude/handoffs/29-figma-specs.md
+        // Token Mapping — `#7e818c`/`#212225` are new hex values not covered by any
+        // existing token; `dashboard-vehicles-border`/`dashboard-usage-text`/
+        // `dashboard-placeholder`/`dashboard-accent-solid` are reused per Safe
+        // Assumptions A9/A10/A11, not duplicated here.)
+        "dashboard-reservation-calendar-weekday": "#7e818c", // 요일 헤더(일 월 화 수 목 금 토) 텍스트
+        "dashboard-reservation-calendar-text": "#212225", // 날짜 셀 / 하단 버튼 / chevron 텍스트(A11)
       },
       borderRadius: {
         card: "12px",
@@ -123,6 +132,9 @@ const config: Config = {
       boxShadow: {
         "dashboard-card": "0px 2px 8px rgba(0,0,0,0.08)", // 요약 카드 그림자 (node 2361:23652 하위)
         "dashboard-tire-card": "0px 14px 54px rgba(0,0,0,0.03)", // 타이어 카드 그림자 (issue #15)
+        // 예약 날짜 팝오버 이중 그림자 (issue #29, node 1:12762 "달력").
+        "dashboard-popover":
+          "0px 2px 4px rgba(0,0,0,0.2), 8px 3px 22px 10px rgba(150,150,150,0.11)",
       },
       dropShadow: {
         // 차트 강조 포인트 툴팁 그림자 (node 2361:23766). SVG 요소는 CSS `box-shadow`가

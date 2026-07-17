@@ -16,7 +16,14 @@ export default function ReservationsPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const { status, page } = parseReservationListParams(searchParams);
+  const { status, page, rentedOn, returnedOn } = parseReservationListParams(searchParams);
 
-  return <ReservationsSection status={status} page={page} />;
+  return (
+    <ReservationsSection
+      status={status}
+      page={page}
+      rentedOn={rentedOn}
+      returnedOn={returnedOn}
+    />
+  );
 }

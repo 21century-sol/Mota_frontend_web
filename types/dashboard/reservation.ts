@@ -42,9 +42,16 @@ export interface ReservationItem {
   status: ReservationStatus;
 }
 
-/** `status` filter; `undefined` means the "전체" tab (all statuses). */
+/**
+ * `status` filter; `undefined` means the "전체" tab (all statuses).
+ * `rentedOn`/`returnedOn` (issue #29, `YYYY-MM-DD`) are exact-day matches
+ * against `ReservationItem.rentedAt`/`returnedAt` from the calendar popover
+ * — see `lib/dashboard/reservations/list.ts` `filterReservationsByDateRange`.
+ */
 export interface ReservationListFilters {
   status?: ReservationStatus;
+  rentedOn?: string;
+  returnedOn?: string;
 }
 
 /** 1-based page metadata for the client-side fixture pagination. */
