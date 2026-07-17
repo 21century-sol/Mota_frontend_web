@@ -1,20 +1,35 @@
 import { delay, http, HttpResponse } from "msw";
 
-import type { VehicleStatusCountDto } from "@/types/dashboard/summary";
+import type { DashboardSummaryContentDto } from "@/types/dashboard/summary";
 import { SUMMARY_ENDPOINT_PATH } from "@/lib/dashboard/summary/api";
 import {
   summaryEmptyFixture,
   summaryNormalFixture,
 } from "@/lib/dashboard/msw/fixtures/summary";
 
-/** success: all 4 statuses non-zero (AC1). */
+/** Confirmed backend envelope shape (issue #31). Test-only — MSW never runs in browser dev. */
+interface DashboardSummaryEnvelope {
+  content: DashboardSummaryContentDto;
+  error: string | null;
+  statusCode: number;
+}
+
+/** success: all 4 fields non-zero (AC1). */
 export const summaryNormalHandler = http.get(SUMMARY_ENDPOINT_PATH, () =>
-  HttpResponse.json<VehicleStatusCountDto[]>(summaryNormalFixture),
+  HttpResponse.json<DashboardSummaryEnvelope>({
+    content: summaryNormalFixture,
+    error: null,
+    statusCode: 200,
+  }),
 );
 
-/** success: all 4 statuses are 0 (AC3). */
+/** success: all 4 fields are 0 (AC3). */
 export const summaryEmptyHandler = http.get(SUMMARY_ENDPOINT_PATH, () =>
-  HttpResponse.json<VehicleStatusCountDto[]>(summaryEmptyFixture),
+  HttpResponse.json<DashboardSummaryEnvelope>({
+    content: summaryEmptyFixture,
+    error: null,
+    statusCode: 200,
+  }),
 );
 
 /** server error: 500 (AC4 — error card + retry). */
@@ -29,5 +44,9 @@ export const summaryErrorHandler = http.get(SUMMARY_ENDPOINT_PATH, () =>
  */
 export const summarySlowHandler = http.get(SUMMARY_ENDPOINT_PATH, async () => {
   await delay(2000);
-  return HttpResponse.json<VehicleStatusCountDto[]>(summaryNormalFixture);
+  return HttpResponse.json<DashboardSummaryEnvelope>({
+    content: summaryNormalFixture,
+    error: null,
+    statusCode: 200,
+  });
 });
