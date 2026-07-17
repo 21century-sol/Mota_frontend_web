@@ -42,15 +42,20 @@ export class VehicleListFetchError extends Error {
   }
 }
 
-function isNonEmptyString(value: unknown): value is string {
+/**
+ * `export`ed (issue #15) so the 5 new `/dashboard/vehicles/[vehicleId]`
+ * adapters can reuse the same primitive validators instead of duplicating
+ * them — behavior unchanged (additive-only per `.claude/handoffs/15-api-specs.md`).
+ */
+export function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.length > 0;
 }
 
-function isFiniteNumber(value: unknown): value is number {
+export function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
-function isIsoDateString(value: unknown): value is string {
+export function isIsoDateString(value: unknown): value is string {
   return (
     typeof value === "string" &&
     value.length > 0 &&
@@ -59,7 +64,7 @@ function isIsoDateString(value: unknown): value is string {
 }
 
 /** Validates all 12 confirmed fields; an unknown enum value or missing field is a contract mismatch, not a dropped row. */
-function isVehicleDto(value: unknown): value is VehicleDto {
+export function isVehicleDto(value: unknown): value is VehicleDto {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as Record<string, unknown>;
   return (

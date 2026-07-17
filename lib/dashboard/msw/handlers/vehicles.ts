@@ -2,17 +2,26 @@ import { delay, http, HttpResponse } from "msw";
 
 import type {
   TireStatus,
+  TireTrendMetric,
   VehicleManagementListResponse,
   VehicleManagementStatus,
 } from "@/types/dashboard/vehicle";
 import {
   isTireStatus,
+  isTireTrendMetric,
   isVehicleManagementStatus,
 } from "@/types/dashboard/vehicle";
 import { VEHICLES_ENDPOINT_PATH } from "@/lib/dashboard/vehicles/api";
+import { VEHICLE_DETAIL_ENDPOINT_PATH } from "@/lib/dashboard/vehicles/detail-api";
+import { VEHICLE_USAGE_HISTORY_PAGE_SIZE } from "@/lib/dashboard/vehicles/usage-history-api";
 import {
   filterVehicleFixture,
+  toVehicleAlertHistoryResponse,
+  toVehicleDetailResponse,
   toVehicleManagementListResponse,
+  toVehicleTireDetailResponse,
+  toVehicleTireTrendResponse,
+  toVehicleUsageHistoryResponse,
   vehiclesEmptyFixture,
   vehiclesNormalFixture,
 } from "@/lib/dashboard/msw/fixtures/vehicles";
@@ -74,3 +83,97 @@ export const vehiclesSlowHandler = http.get(VEHICLES_ENDPOINT_PATH, async () => 
     toVehicleManagementListResponse(vehiclesNormalFixture),
   );
 });
+
+// ---------------------------------------------------------------------------
+// Issue #15 — `/dashboard/vehicles/[vehicleId]` handlers.
+// ---------------------------------------------------------------------------
+
+const VEHICLE_DETAIL_PATH = `${VEHICLE_DETAIL_ENDPOINT_PATH}/:vehicleId`;
+const VEHICLE_ALERT_HISTORY_PATH = `${VEHICLE_DETAIL_ENDPOINT_PATH}/:vehicleId/alerts`;
+const VEHICLE_USAGE_HISTORY_PATH = `${VEHICLE_DETAIL_ENDPOINT_PATH}/:vehicleId/usage-history`;
+const VEHICLE_TIRE_DETAIL_PATH = `${VEHICLE_DETAIL_ENDPOINT_PATH}/:vehicleId/tires`;
+const VEHICLE_TIRE_TREND_PATH = `${VEHICLE_DETAIL_ENDPOINT_PATH}/:vehicleId/tires/trend`;
+
+/**
+ * success: looks up `params.vehicleId` in the fixture map (`vehicle-mgmt-001`/
+ * `-003`/`-004`/`-007`, `.claude/handoffs/15-api-specs.md` fixture table).
+ * Any other id — including `VEHICLE_DETAIL_NOT_FOUND_ID` — naturally falls
+ * through to a 404, exercising AC6 without a separate dedicated handler.
+ */
+export const vehicleDetailNormalHandler = http.get(VEHICLE_DETAIL_PATH, ({ params }) => {
+  const vehicleId = params.vehicleId as string;
+  const response = toVehicleDetailResponse(vehicleId);
+  if (!response) {
+    return HttpResponse.json({ message: "Not Found" }, { status: 404 });
+  }
+  return HttpResponse.json(response);
+});
+
+/** server error: 500 (AC7 — error message + retry). */
+export const vehicleDetailErrorHandler = http.get(VEHICLE_DETAIL_PATH, () =>
+  HttpResponse.json({ message: "Internal Server Error" }, { status: 500 }),
+);
+
+/** AC5 loading-state coverage, same `delay()` pattern as `vehiclesSlowHandler`. */
+export const vehicleDetailSlowHandler = http.get(VEHICLE_DETAIL_PATH, async ({ params }) => {
+  await delay(2000);
+  const vehicleId = params.vehicleId as string;
+  const response = toVehicleDetailResponse(vehicleId);
+  if (!response) {
+    return HttpResponse.json({ message: "Not Found" }, { status: 404 });
+  }
+  return HttpResponse.json(response);
+});
+
+export const vehicleAlertHistoryNormalHandler = http.get(
+  VEHICLE_ALERT_HISTORY_PATH,
+  ({ params }) => HttpResponse.json(toVehicleAlertHistoryResponse(params.vehicleId as string)),
+);
+
+export const vehicleAlertHistoryErrorHandler = http.get(VEHICLE_ALERT_HISTORY_PATH, () =>
+  HttpResponse.json({ message: "Internal Server Error" }, { status: 500 }),
+);
+
+export const vehicleUsageHistoryNormalHandler = http.get(
+  VEHICLE_USAGE_HISTORY_PATH,
+  ({ request, params }) => {
+    const { searchParams } = new URL(request.url);
+    const page = Number.parseInt(searchParams.get("page") ?? "1", 10) || 1;
+    return HttpResponse.json(
+      toVehicleUsageHistoryResponse(
+        params.vehicleId as string,
+        page,
+        VEHICLE_USAGE_HISTORY_PAGE_SIZE,
+      ),
+    );
+  },
+);
+
+export const vehicleUsageHistoryErrorHandler = http.get(VEHICLE_USAGE_HISTORY_PATH, () =>
+  HttpResponse.json({ message: "Internal Server Error" }, { status: 500 }),
+);
+
+export const vehicleTireDetailNormalHandler = http.get(
+  VEHICLE_TIRE_DETAIL_PATH,
+  ({ params }) => HttpResponse.json(toVehicleTireDetailResponse(params.vehicleId as string)),
+);
+
+export const vehicleTireDetailErrorHandler = http.get(VEHICLE_TIRE_DETAIL_PATH, () =>
+  HttpResponse.json({ message: "Internal Server Error" }, { status: 500 }),
+);
+
+export const vehicleTireTrendNormalHandler = http.get(
+  VEHICLE_TIRE_TREND_PATH,
+  ({ request, params }) => {
+    const { searchParams } = new URL(request.url);
+    const metricParam = searchParams.get("metric");
+    const metric: TireTrendMetric = isTireTrendMetric(metricParam) ? metricParam : "PRESSURE";
+    return HttpResponse.json(
+      toVehicleTireTrendResponse(params.vehicleId as string, metric),
+    );
+  },
+);
+
+export const vehicleTireTrendErrorHandler = http.get(VEHICLE_TIRE_TREND_PATH, () =>
+  HttpResponse.json({ message: "Internal Server Error" }, { status: 500 }),
+);

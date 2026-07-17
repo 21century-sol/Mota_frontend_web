@@ -2,7 +2,14 @@ import type { RequestHandler } from "msw";
 
 import { summaryNormalHandler } from "@/lib/dashboard/msw/handlers/summary";
 import { alertsNormalHandler } from "@/lib/dashboard/msw/handlers/alerts";
-import { vehiclesNormalHandler } from "@/lib/dashboard/msw/handlers/vehicles";
+import {
+  vehicleAlertHistoryNormalHandler,
+  vehicleDetailNormalHandler,
+  vehicleTireDetailNormalHandler,
+  vehicleTireTrendNormalHandler,
+  vehicleUsageHistoryNormalHandler,
+  vehiclesNormalHandler,
+} from "@/lib/dashboard/msw/handlers/vehicles";
 
 // Dev-boot default: only the "normal" scenario for each dashboard widget runs out
 // of the box. Other scenarios (empty/error/slow) are opted into per-test via
@@ -12,4 +19,10 @@ export const handlers: RequestHandler[] = [
   summaryNormalHandler,
   alertsNormalHandler,
   vehiclesNormalHandler,
+  // Issue #15 — `/dashboard/vehicles/[vehicleId]`.
+  vehicleDetailNormalHandler,
+  vehicleAlertHistoryNormalHandler,
+  vehicleUsageHistoryNormalHandler,
+  vehicleTireDetailNormalHandler,
+  vehicleTireTrendNormalHandler,
 ];
