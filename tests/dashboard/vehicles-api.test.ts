@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   toVehicleListItems,
   VehicleListContractMismatchError,
+  VehicleListFetchError,
 } from "@/lib/dashboard/vehicles/api";
 import type { VehicleDto } from "@/types/dashboard/vehicle";
 
@@ -84,5 +85,49 @@ describe("toVehicleListItems", () => {
 
   it("returns an empty list for an empty `vehicles` array (AC3), not an error", () => {
     expect(toVehicleListItems(envelope([]))).toEqual([]);
+  });
+
+  it("treats statusCode >= 500 as a fetch error with kind server-error, not a contract mismatch (issue #33)", () => {
+    try {
+      toVehicleListItems({
+        statusCode: 500,
+        error: "Internal Server Error",
+        content: null,
+      });
+      expect.unreachable("expected toVehicleListItems to throw");
+    } catch (thrown) {
+      expect(thrown).toBeInstanceOf(VehicleListFetchError);
+      expect((thrown as VehicleListFetchError).kind).toBe("server-error");
+      expect((thrown as VehicleListFetchError).status).toBe(500);
+    }
+  });
+
+  it("treats a business-level statusCode < 500 as a fetch error with kind client-error", () => {
+    try {
+      toVehicleListItems({
+        statusCode: 400,
+        error: "Bad Request",
+        content: null,
+      });
+      expect.unreachable("expected toVehicleListItems to throw");
+    } catch (thrown) {
+      expect(thrown).toBeInstanceOf(VehicleListFetchError);
+      expect((thrown as VehicleListFetchError).kind).toBe("client-error");
+      expect((thrown as VehicleListFetchError).status).toBe(400);
+    }
+  });
+
+  it("treats a non-null `error` field as a client-error fetch error even with statusCode 200", () => {
+    try {
+      toVehicleListItems({
+        statusCode: 200,
+        error: "UNEXPECTED",
+        content: { refreshedAt: "2026-07-16T10:00:00.000Z", vehicles: [] },
+      });
+      expect.unreachable("expected toVehicleListItems to throw");
+    } catch (thrown) {
+      expect(thrown).toBeInstanceOf(VehicleListFetchError);
+      expect((thrown as VehicleListFetchError).kind).toBe("client-error");
+    }
   });
 });

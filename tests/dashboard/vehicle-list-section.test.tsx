@@ -67,7 +67,7 @@ describe("VehicleListSection", () => {
     // vehicle-mgmt-006: RENTED, rentedAt populated, returnedAt null.
     const row6 = screen.getByText("11바 1111").closest("tr");
     const withinRow6 = within(row6 as HTMLElement);
-    expect(withinRow6.getByText("2026.07.01")).toBeInTheDocument();
+    expect(withinRow6.getByText("26.07.01")).toBeInTheDocument();
     expect(withinRow6.getByText("—")).toBeInTheDocument();
   });
 

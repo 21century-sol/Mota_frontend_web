@@ -41,6 +41,26 @@ export function formatVehicleDateLabel(iso: string | null): string {
   return `${yyyy}.${mm}.${dd}`;
 }
 
+/**
+ * `YY.MM.DD` display format for the `/dashboard/vehicles` list table only
+ * (issue #33, user-confirmed override of the CLAUDE.md §4 default
+ * `YYYY.MM.DD` for this one screen). {@link formatVehicleDateLabel}
+ * (`YYYY.MM.DD`) is unchanged and stays the format used by the #15 detail
+ * screen and every other consumer — only `VehicleTable.tsx` uses this
+ * function. UTC getters avoid a timezone-dependent day shift.
+ */
+export function formatVehicleListDateLabel(iso: string | null): string {
+  if (!iso) return NO_VALUE_PLACEHOLDER;
+
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return NO_VALUE_PLACEHOLDER;
+
+  const yy = (date.getUTCFullYear() % 100).toString().padStart(2, "0");
+  const mm = (date.getUTCMonth() + 1).toString().padStart(2, "0");
+  const dd = date.getUTCDate().toString().padStart(2, "0");
+  return `${yy}.${mm}.${dd}`;
+}
+
 // ---------------------------------------------------------------------------
 // Issue #15 — vehicle detail screen formatters (additive).
 // ---------------------------------------------------------------------------
