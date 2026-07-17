@@ -96,6 +96,21 @@ const config: Config = {
         "dashboard-usage-text": "#141415", // 이용 이력 탭 본문 텍스트
         "dashboard-usage-text-muted": "#909090", // 이용 이력 탭 전화번호 텍스트
         "dashboard-usage-text-subtle": "#969696", // 이용 이력 탭 리포트 링크 텍스트
+
+        // Dashboard reservations tokens (issue #16, Figma file nt8U8I48Rcfz8LGNqYvRZv,
+        // root 11:27931 / 1:12430). (.claude/handoffs/16-figma-specs.md Token Mapping,
+        // Safe Assumption A6.)
+        "dashboard-accent-solid": "#5a46fa", // 선택 상태 탭 텍스트/언더라인
+        // 예약 상태 배지 2색. `#fb963d`/`#969696`은 각각 기존 `dashboard-status-rented`
+        // (차량 관리 "대여 중")와 `dashboard-usage-text-subtle`(이용 이력 탭 텍스트)의 hex와
+        // 우연히 동일하지만, 이 화면의 배지는 다른 도메인(예약 상태)의 시맨틱 색상이라 별도
+        // 토큰으로 분리한다 — `dashboard-text-primary` vs `dashboard-sidebar`(#11, 값은 같지만
+        // 스코프가 다른 별개 토큰으로 유지)와 동일한 저장소 관례. `dashboard-usage-text-subtle`은
+        // 계속 일반 텍스트 용도로만 쓰고(예: PDF 버튼 텍스트), 값이 나중에 바뀌어도 이 배지
+        // 색상이 의도치 않게 함께 바뀌지 않도록 분리했다(main-agent 지시, 2026-07-17).
+        "dashboard-reservation-status-rented": "#fb963d", // 배지 "대여 중"
+        "dashboard-reservation-status-returned": "#969696", // 배지 "반납완료"
+        "dashboard-reservation-page-border": "#eee", // 비활성 페이지네이션 숫자 버튼 보더
       },
       borderRadius: {
         card: "12px",
