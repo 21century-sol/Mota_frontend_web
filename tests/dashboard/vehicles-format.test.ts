@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatTireStatusLabel,
   formatVehicleDateLabel,
+  formatVehicleListDateLabel,
   NO_VALUE_PLACEHOLDER,
 } from "@/lib/dashboard/vehicles/format";
 
@@ -41,5 +42,28 @@ describe("formatVehicleDateLabel", () => {
 
   it("renders the explicit placeholder for an unparsable string instead of throwing", () => {
     expect(formatVehicleDateLabel("not-a-date")).toBe(NO_VALUE_PLACEHOLDER);
+  });
+});
+
+describe("formatVehicleListDateLabel", () => {
+  it("formats an ISO timestamp as YY.MM.DD (issue #33, vehicle list only)", () => {
+    expect(formatVehicleListDateLabel("2026-07-07T09:00:00.000Z")).toBe(
+      "26.07.07",
+    );
+  });
+
+  it("uses UTC date parts so the label doesn't shift with the local timezone", () => {
+    expect(formatVehicleListDateLabel("2026-01-01T23:30:00.000Z")).toBe(
+      "26.01.01",
+    );
+  });
+
+  it("renders the explicit placeholder for null instead of an empty string (AC1)", () => {
+    expect(formatVehicleListDateLabel(null)).toBe(NO_VALUE_PLACEHOLDER);
+    expect(formatVehicleListDateLabel(null)).not.toBe("");
+  });
+
+  it("renders the explicit placeholder for an unparsable string instead of throwing", () => {
+    expect(formatVehicleListDateLabel("not-a-date")).toBe(NO_VALUE_PLACEHOLDER);
   });
 });

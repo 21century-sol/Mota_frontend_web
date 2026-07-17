@@ -84,17 +84,37 @@ export function isVehicleDto(value: unknown): value is VehicleDto {
 }
 
 /**
- * Only the single confirmed envelope shape (`{ content: { vehicles } }`) is
- * accepted — no legacy bare-array fallback is needed for this issue
- * (`.claude/handoffs/14-api-specs.md` Contract status: 확정).
+ * Only the single confirmed envelope shape (`{ statusCode, error, content: { vehicles } }`)
+ * is accepted — no legacy bare-array fallback is needed for this issue
+ * (`.claude/handoffs/14-api-specs.md` Contract status: 확정). `statusCode !== 200`
+ * or `error !== null` is a business-level failure inside an otherwise
+ * well-formed response, so it is surfaced as a {@link VehicleListFetchError}
+ * (issue #33, same "couldn't load, retry" UX as an HTTP error, matching the
+ * #31 summary-card precedent) rather than a
+ * {@link VehicleListContractMismatchError}, which stays reserved for a
+ * malformed/unexpected shape.
  */
 function extractVehicleDtoArray(raw: unknown): unknown[] {
-  if (typeof raw !== "object" || raw === null || !("content" in raw)) {
+  if (typeof raw !== "object" || raw === null) {
+    throw new VehicleListContractMismatchError("response is not an object");
+  }
+  const envelope = raw as Record<string, unknown>;
+
+  if (typeof envelope.statusCode !== "number") {
     throw new VehicleListContractMismatchError(
-      "response is missing the `content` envelope field",
+      "response is missing a numeric `statusCode` field",
     );
   }
-  const content = (raw as Record<string, unknown>).content;
+  if (envelope.statusCode !== 200 || envelope.error !== null) {
+    throw new VehicleListFetchError(
+      envelope.statusCode >= 500 ? "server-error" : "client-error",
+      "차량 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+      undefined,
+      envelope.statusCode,
+    );
+  }
+
+  const content = envelope.content;
   if (typeof content !== "object" || content === null || !("vehicles" in content)) {
     throw new VehicleListContractMismatchError(
       "`content` is missing the `vehicles` field",
@@ -137,7 +157,12 @@ export function toVehicleListItems(raw: unknown): VehicleListItem[] {
   return items;
 }
 
-export const VEHICLES_ENDPOINT_PATH = "/api/vehicles/management";
+/**
+ * Confirmed backend endpoint (issue #33, Swagger
+ * `https://mota-app.duckdns.org/swagger-ui/index.html#/Vehicle/getVehicleManagementList`).
+ * Replaces the #14 provisional path (`/api/vehicles/management`).
+ */
+export const VEHICLES_ENDPOINT_PATH = "/api/vehicles/search";
 
 /**
  * Same jsdom/undici `AbortSignal` realm mismatch worked around in

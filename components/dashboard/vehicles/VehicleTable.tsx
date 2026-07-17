@@ -8,7 +8,7 @@ import type {
 } from "@/types/dashboard/vehicle";
 import {
   formatTireStatusLabel,
-  formatVehicleDateLabel,
+  formatVehicleListDateLabel,
 } from "@/lib/dashboard/vehicles/format";
 
 const STATUS_BADGE_STYLES: Record<
@@ -174,11 +174,11 @@ export function VehicleTable({ vehicles }: { vehicles: VehicleListItem[] }) {
               </td>
               <td className="flex items-center text-sm text-dashboard-vehicles-title md:table-cell md:px-3 md:py-2 md:align-middle">
                 <CellLabel>대여일</CellLabel>
-                {formatVehicleDateLabel(vehicle.rentedAt)}
+                {formatVehicleListDateLabel(vehicle.rentedAt)}
               </td>
               <td className="flex items-center text-sm text-dashboard-vehicles-title md:table-cell md:px-3 md:py-2 md:align-middle">
                 <CellLabel>반납일</CellLabel>
-                {formatVehicleDateLabel(vehicle.returnedAt)}
+                {formatVehicleListDateLabel(vehicle.returnedAt)}
                 <Link
                   href={`/dashboard/vehicles/${vehicle.vehicleId}`}
                   aria-label={`${vehicle.plateNumber} ${vehicle.manufacturer} ${vehicle.model} 상세보기`}

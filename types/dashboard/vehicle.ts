@@ -1,12 +1,13 @@
 /**
  * DTO/UI-model types for the `/dashboard/vehicles` list (issue #14). Confirmed
  * against the real backend Swagger spec
- * (`https://mota-app.duckdns.org/api-docs`, `GET /api/vehicles/management`) —
- * see `.claude/handoffs/14-api-specs.md`.
+ * (`https://mota-app.duckdns.org/swagger-ui/index.html#/Vehicle/getVehicleManagementList`,
+ * `GET /api/vehicles/search`, issue #33) — see `.claude/handoffs/14-api-specs.md`
+ * and `.claude/handoffs/33-api-specs.md`.
  *
  * This is a *different* domain enum from `types/dashboard/summary.ts`'s
- * `VehicleStatus` (issue #11, `/dashboard` home summary cards, includes
- * `OWNED`). The two must never be imported into each other's module (PM
+ * dashboard-summary content DTO (issue #11/#31, `/dashboard` home summary
+ * cards). The two must never be imported into each other's module (PM
  * Decision 1, `.claude/handoffs/14-pm-breakdown.md`) — `summary.ts` is a
  * protected file for this issue and is intentionally not imported here.
  */
@@ -70,7 +71,7 @@ export function isFuelType(value: unknown): value is FuelType {
 }
 
 /**
- * One vehicle entry as returned by `GET /api/vehicles/management`.
+ * One vehicle entry as returned by `GET /api/vehicles/search` (issue #33).
  * `imageUrl` is confirmed non-null (Swagger re-check, `.claude/handoffs/14-api-specs.md`).
  * `tireStatus`/`rentedAt`/`returnedAt` are nullable — the UI must render an
  * explicit placeholder ("—") instead of an empty string (PM AC1).
