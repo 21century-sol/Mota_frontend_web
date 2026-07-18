@@ -46,6 +46,7 @@ const config: Config = {
         "dashboard-page-bg": "#f7f7fb", // TopBar/Main 콘텐츠 영역 배경
         "dashboard-sidebar": "#0f0f10", // Sidebar 배경 (node 2483:30897)
         "dashboard-nav-active": "rgba(128,124,255,0.2)", // 활성 메뉴 배경
+        "dashboard-nav-active-icon": "#807CFF", // 활성 메뉴 아이콘 색(텍스트는 흰색 유지, 아이콘만 별도 색 — issue #40, node 1:12191)
         "dashboard-nav-inactive": "#c2c4c8", // 비활성 메뉴 텍스트
         "dashboard-nav-muted": "#8c8e91", // Settings 메뉴 텍스트
         "dashboard-border": "#eaebec", // TopBar 하단 보더 / 계정 pill 보더

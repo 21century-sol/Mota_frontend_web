@@ -1,10 +1,16 @@
-import { Calendar, Folder, Home, MessageSquare, Settings } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import type { ComponentType, SVGProps } from "react";
+import {
+  DashboardIcon,
+  InquiriesIcon,
+  ReservationsIcon,
+  SettingsIcon,
+  VehiclesIcon,
+} from "@/components/dashboard/icons";
 
 export type NavItem = {
   href: string;
   label: string;
-  icon: LucideIcon;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
 };
 
 /**
@@ -15,16 +21,16 @@ export type NavItem = {
  * sidebar, but it shares the same link/active-state rendering.
  */
 export const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", label: "대시보드", icon: Home },
-  { href: "/dashboard/vehicles", label: "차량 관리", icon: Folder },
-  { href: "/dashboard/reservations", label: "대여 현황", icon: Calendar },
-  { href: "/dashboard/inquiries", label: "고객 문의", icon: MessageSquare },
+  { href: "/dashboard", label: "대시보드", icon: DashboardIcon },
+  { href: "/dashboard/vehicles", label: "차량 관리", icon: VehiclesIcon },
+  { href: "/dashboard/reservations", label: "대여 현황", icon: ReservationsIcon },
+  { href: "/dashboard/inquiries", label: "고객 문의", icon: InquiriesIcon },
 ];
 
 export const SETTINGS_NAV_ITEM: NavItem = {
   href: "/dashboard/settings",
   label: "설정",
-  icon: Settings,
+  icon: SettingsIcon,
 };
 
 /**
