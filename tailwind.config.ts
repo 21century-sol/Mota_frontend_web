@@ -11,6 +11,20 @@ const config: Config = {
       fontFamily: {
         // Asta Sans (self-hosted via @fontsource-variable) is the design font.
         sans: ["'Asta Sans Variable'", "system-ui", "sans-serif"],
+        // Dashboard-only stack (issue #38): Pretendard Variable (self-hosted
+        // via `pretendard`) is the Korean fallback for admin screens. Kept
+        // out of the shared `sans` key and applied via `font-dashboard-sans`
+        // on `app/dashboard/layout.tsx` only, so `/rental-checklist` Korean
+        // text keeps rendering through its existing `system-ui` fallback
+        // unchanged (CLAUDE.md §3 — additive shared-file edits must not
+        // change checklist styles).
+        "dashboard-sans": [
+          "'Asta Sans Variable'",
+          "'Pretendard Variable'",
+          "Pretendard",
+          "system-ui",
+          "sans-serif",
+        ],
       },
       colors: {
         // Figma design tokens (mota QR mobile flow)

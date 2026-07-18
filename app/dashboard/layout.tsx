@@ -11,6 +11,11 @@ import { TopBar } from "@/components/dashboard/TopBar";
  * `QueryProvider` (issue #11) is scoped here rather than in the shared root
  * `app/layout.tsx` since `/rental-checklist` does not use React Query
  * (`.claude/handoffs/11-pm-breakdown.md` Assumption A2).
+ *
+ * `font-dashboard-sans` (issue #38, Pretendard Variable Korean fallback) is
+ * applied only on this dashboard-scoped root — not the shared `sans` key in
+ * `tailwind.config.ts` — so `/rental-checklist` Korean text keeps rendering
+ * through its existing `system-ui` fallback unchanged.
  */
 export default function DashboardLayout({
   children,
@@ -18,7 +23,7 @@ export default function DashboardLayout({
   children: ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-dashboard-page-bg">
+    <div className="min-h-screen bg-dashboard-page-bg font-dashboard-sans">
       <Sidebar />
       <div className="flex min-h-screen flex-col md:pl-[260px]">
         <TopBar />

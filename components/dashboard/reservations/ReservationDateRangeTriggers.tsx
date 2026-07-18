@@ -87,9 +87,9 @@ export function ReservationDateRangeTriggers({
           aria-haspopup="dialog"
           aria-expanded={openField === "rented"}
           onClick={() => setOpenField((current) => (current === "rented" ? null : "rented"))}
-          className="flex items-center gap-2 rounded-full border border-dashboard-vehicles-border bg-white px-4 py-2 text-sm text-dashboard-vehicles-label outline-none focus-visible:ring-2 focus-visible:ring-dashboard-accent-solid focus-visible:ring-offset-2"
+          className="flex items-center gap-2 rounded-full border border-dashboard-vehicles-border bg-white py-2 pl-4 pr-5 text-sm text-dashboard-text-muted outline-none focus-visible:ring-2 focus-visible:ring-dashboard-accent-solid focus-visible:ring-offset-2"
         >
-          <Calendar aria-hidden="true" className="h-4 w-4" />
+          <Calendar aria-hidden="true" className="h-5 w-5" />
           {rentedOn ? formatReservationDateLabel(rentedOn) : "대여일"}
         </button>
         {openField === "rented" ? (
@@ -109,9 +109,9 @@ export function ReservationDateRangeTriggers({
           aria-haspopup="dialog"
           aria-expanded={openField === "returned"}
           onClick={() => setOpenField((current) => (current === "returned" ? null : "returned"))}
-          className="flex items-center gap-2 rounded-full border border-dashboard-vehicles-border bg-white px-4 py-2 text-sm text-dashboard-vehicles-label outline-none focus-visible:ring-2 focus-visible:ring-dashboard-accent-solid focus-visible:ring-offset-2"
+          className="flex items-center gap-2 rounded-full border border-dashboard-vehicles-border bg-white py-2 pl-4 pr-5 text-sm text-dashboard-text-muted outline-none focus-visible:ring-2 focus-visible:ring-dashboard-accent-solid focus-visible:ring-offset-2"
         >
-          <Calendar aria-hidden="true" className="h-4 w-4" />
+          <Calendar aria-hidden="true" className="h-5 w-5" />
           {returnedOn ? formatReservationDateLabel(returnedOn) : "반납일"}
         </button>
         {openField === "returned" ? (

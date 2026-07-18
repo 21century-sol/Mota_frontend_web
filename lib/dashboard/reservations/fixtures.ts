@@ -182,11 +182,13 @@ export const RESERVATION_FIXTURES = [
 ] satisfies ReservationItem[];
 
 /**
- * Update-time text shown next to the reset button. Corrected in issue #29 to
- * the literal Figma copy (`.claude/handoffs/29-pm-breakdown.md` Confirmed
- * Facts: "업데이트 시간 : 26/07/08 20:41", superseding the placeholder format
- * used in #16). A fixed, static fixture string — never generated from
- * `new Date()` (CLAUDE.md §6) — kept next to the other fixture data it
- * describes.
+ * Pre-mount fallback for `ReservationUpdateBar`'s update-time text (issue
+ * #16, literal Figma copy captured in `.claude/handoffs/29-pm-breakdown.md`
+ * Confirmed Facts). Since #38, this fixed string is only shown before the
+ * component's mount effect has computed a real client-side timestamp (via
+ * `formatReservationUpdatedAtLabel`) — using the same static string on the
+ * server and the pre-effect client render avoids a hydration mismatch. A
+ * fixed, static fixture string — never generated from `new Date()`
+ * (CLAUDE.md §6).
  */
 export const RESERVATIONS_UPDATED_AT_LABEL = "업데이트 시간 : 26/07/08 20:41";
