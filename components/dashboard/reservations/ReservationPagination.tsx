@@ -11,6 +11,14 @@ import { buildReservationListHref } from "@/lib/dashboard/reservations/url";
  * reuses `dashboard-chart-accent` (`#5a55f2`, issue #13), a confirmed hex
  * match, unlike the badge colors in `ReservationStatusBadge`. Same numeric
  * pattern as `UsageHistoryTab`'s `UsagePagination` (issue #15).
+ *
+ * Buttons are square (`rounded-lg`, issue #38 — corrected from an earlier
+ * `rounded-full` pill shape). The `pl-6` here pairs with the matching `pl-6`
+ * on the sibling count label in `ReservationListPanel` so both halves of the
+ * pagination row align to the same left inset as the table above them; the
+ * `pr-6` gives the buttons the matching right inset from the table edge
+ * (Figma `PageBtns` `px-24`), and the `gap-1.5` matches the Figma 6px
+ * button spacing (`PageBtns` `gap-[6px]`).
  */
 export function ReservationPagination({
   currentStatus,
@@ -25,7 +33,7 @@ export function ReservationPagination({
   if (totalPages <= 1) return null;
 
   return (
-    <nav aria-label="예약 목록 페이지" className="flex gap-1">
+    <nav aria-label="예약 목록 페이지" className="flex gap-1.5 px-6">
       {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => {
         const isCurrent = pageNumber === currentPage;
 
@@ -40,11 +48,11 @@ export function ReservationPagination({
               )
             }
             className={[
-              "h-8 w-8 rounded-full text-sm font-medium outline-none transition-colors",
+              "h-[30px] w-[30px] rounded-lg text-xs font-medium outline-none transition-colors",
               "focus-visible:ring-2 focus-visible:ring-dashboard-accent-solid",
               isCurrent
                 ? "bg-dashboard-chart-accent text-white"
-                : "border border-dashboard-reservation-page-border text-dashboard-vehicles-label hover:bg-dashboard-vehicles-surface",
+                : "border border-dashboard-reservation-page-border bg-white text-black hover:bg-dashboard-vehicles-surface",
             ].join(" ")}
           >
             {pageNumber}

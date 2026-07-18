@@ -34,3 +34,26 @@ export function formatReservationStatusBadgeLabel(
 ): string {
   return RESERVATION_STATUS_BADGE_LABELS[status];
 }
+
+/**
+ * "업데이트 시간 : YY/MM/DD HH:mm" — the `ReservationUpdateBar` refresh-time
+ * label (issue #38). Slash-separated with a 2-digit year, matching the
+ * confirmed Figma copy's literal separator convention (the fixed
+ * `RESERVATIONS_UPDATED_AT_LABEL` fallback: "26/07/08 20:41"), which is
+ * distinct from this file's dot-separated `YY.MM.DD` used by
+ * `formatReservationDateLabel`.
+ *
+ * Uses local-time getters (not the UTC getters `formatReservationDateLabel`
+ * uses) because `date` here is always a client-side `Date` created at the
+ * moment the page mounted or the user clicked refresh — it represents "now"
+ * in the browser's own timezone, not a server-supplied ISO date that must
+ * render identically regardless of the viewer's timezone.
+ */
+export function formatReservationUpdatedAtLabel(date: Date): string {
+  const yy = (date.getFullYear() % 100).toString().padStart(2, "0");
+  const mm = (date.getMonth() + 1).toString().padStart(2, "0");
+  const dd = date.getDate().toString().padStart(2, "0");
+  const hh = date.getHours().toString().padStart(2, "0");
+  const min = date.getMinutes().toString().padStart(2, "0");
+  return `업데이트 시간 : ${yy}/${mm}/${dd} ${hh}:${min}`;
+}

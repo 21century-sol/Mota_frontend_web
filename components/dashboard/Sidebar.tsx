@@ -63,11 +63,13 @@ export function Sidebar() {
           was unavailable in this session (no Figma MCP tool access granted to this
           agent run). This single-letter mark is a clearly temporary stand-in; replace
           with the exported SVG under /public/assets/dashboard/ and remove this comment
-          once the asset is available.
+          once the asset is available. The fill color below was corrected to the
+          confirmed Figma logo-container color (issue #38, `dashboard-chart-accent`
+          #5a55f2) independent of the pending SVG swap.
         */}
         <span
           aria-hidden="true"
-          className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-lg bg-brand text-sm font-bold text-white"
+          className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-lg bg-dashboard-chart-accent text-sm font-bold text-white"
         >
           M
         </span>

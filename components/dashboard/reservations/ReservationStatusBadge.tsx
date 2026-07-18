@@ -35,7 +35,7 @@ export function ReservationStatusBadge({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${style.border} ${style.text}`}
+      className={`inline-flex items-center gap-2 rounded-full border py-1 pl-3 pr-3.5 text-sm font-medium ${style.border} ${style.text}`}
     >
       <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
       {formatReservationStatusBadgeLabel(status)}

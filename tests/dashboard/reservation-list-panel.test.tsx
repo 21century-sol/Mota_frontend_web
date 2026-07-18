@@ -61,7 +61,7 @@ describe("ReservationListPanel (AC1, AC8, AC11)", () => {
 
     const tabGroup = screen.getByRole("group", { name: "예약 상태 필터" });
     const rentedTrigger = screen.getByRole("button", { name: "대여일 선택" });
-    const resetButton = screen.getByRole("button", { name: "필터 초기화" });
+    const resetButton = screen.getByRole("button", { name: "목록 새로고침 (필터 초기화)" });
 
     // Walk up from the reset button until we find the row it shares with the
     // date trigger (their closest common ancestor), then confirm the status
