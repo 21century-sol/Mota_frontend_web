@@ -1,5 +1,6 @@
 "use client";
 
+import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import type {
@@ -8,7 +9,7 @@ import type {
 } from "@/types/dashboard/vehicle";
 import { buildVehicleListHref } from "@/lib/dashboard/vehicles/url";
 
-/** Figma 타이어 상태 필터 order (node 2722:28835): 정상/주의/위험. */
+/** Figma 타이어 상태 필터 order (node 1:13308, `.claude/handoffs/35-figma-analysis.md`): 정상/주의/위험. */
 const TIRE_CHIPS: ReadonlyArray<{ value: TireStatus; label: string }> = [
   { value: "NORMAL", label: "정상" },
   { value: "CAUTION", label: "주의" },
@@ -16,21 +17,24 @@ const TIRE_CHIPS: ReadonlyArray<{ value: TireStatus; label: string }> = [
 ];
 
 /**
- * Tire status filter chips (issue #14, PM Decision 4). Independent from
- * {@link import("./VehicleFilterBar").VehicleFilterBar} — writes `?tireStatus=`
- * via `router.replace` and forwards the current `status` unchanged (AC6).
+ * Multi-select tire status chips (issue #35 AC4/AC7 — supersedes the issue
+ * #14 single-select-with-toggle-off behavior). Each chip toggles
+ * independently: clicking an unselected chip adds it to the selection,
+ * clicking a selected chip removes it, and any combination of 0-3 chips can
+ * be active at once. `buildVehicleListHref` canonicalizes the resulting
+ * array into `NORMAL,CAUTION,WARNING` order before it reaches the URL, so
+ * the URL/query-key never depends on click order.
  *
- * Figma has no "전체"/clear chip for tire status, so clicking the already-selected
- * chip toggles it off (clears `tireStatus`) instead of being a no-op — a
- * reversible, low-risk UX choice (no confirmed design fact either way) that
- * gives users a way to clear this filter without leaving the tab.
+ * Independent from {@link import("./VehicleFilterBar").VehicleFilterBar} —
+ * writes `?tireStatus=` via `router.replace` and forwards the current
+ * `status` unchanged (AC6).
  */
 export function VehicleTireStatusFilter({
   currentStatus,
   currentTireStatus,
 }: {
   currentStatus: VehicleManagementStatus | undefined;
-  currentTireStatus: TireStatus | undefined;
+  currentTireStatus: readonly TireStatus[];
 }) {
   const router = useRouter();
 
@@ -38,10 +42,10 @@ export function VehicleTireStatusFilter({
     <div
       role="group"
       aria-label="타이어 상태 필터"
-      className="flex flex-wrap gap-2"
+      className="flex flex-wrap gap-1.5"
     >
       {TIRE_CHIPS.map(({ value, label }) => {
-        const isSelected = value === currentTireStatus;
+        const isSelected = currentTireStatus.includes(value);
 
         return (
           <button
@@ -49,21 +53,25 @@ export function VehicleTireStatusFilter({
             type="button"
             aria-pressed={isSelected}
             onClick={() => {
+              const nextTireStatus = isSelected
+                ? currentTireStatus.filter((status) => status !== value)
+                : [...currentTireStatus, value];
               router.replace(
                 buildVehicleListHref({
                   status: currentStatus,
-                  tireStatus: isSelected ? undefined : value,
+                  tireStatus: nextTireStatus,
                 }),
               );
             }}
             className={[
-              "rounded-full border px-3 py-1.5 text-sm font-medium outline-none transition-colors",
+              "inline-flex items-center gap-0.5 rounded-full border text-sm font-semibold tracking-[-0.35px] outline-none transition-colors",
               "focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2",
               isSelected
-                ? "border-brand bg-dashboard-chip-selected-bg text-brand"
-                : "border-dashboard-vehicles-border text-dashboard-vehicles-label hover:bg-dashboard-vehicles-surface",
+                ? "border-white bg-dashboard-chip-selected-bg pl-2.5 pr-4 py-1.5 text-brand"
+                : "border-dashboard-vehicles-border px-4 py-1.5 text-dashboard-text-muted hover:bg-dashboard-vehicles-surface",
             ].join(" ")}
           >
+            {isSelected ? <Check aria-hidden="true" className="h-4 w-4" /> : null}
             {label}
           </button>
         );

@@ -61,6 +61,29 @@ export function formatVehicleListDateLabel(iso: string | null): string {
   return `${yy}.${mm}.${dd}`;
 }
 
+/**
+ * `업데이트 시간 : YY/MM/DD HH:mm` label for the vehicle list's `content.refreshedAt`
+ * (issue #35, Figma literal copy `"업데이트 시간 : 26/07/08 20:41"`). Unlike
+ * {@link formatVehicleListDateLabel} (date-only, UTC getters chosen so the
+ * label never day-shifts across timezones), this label includes hour:minute
+ * and is meant to read as "how long ago did I refresh", so it must reflect
+ * the admin's actual local wall-clock time — local-time getters are used
+ * here intentionally (PM handoff Assumption A3).
+ */
+export function formatVehicleListRefreshedAtLabel(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return `업데이트 시간 : ${NO_VALUE_PLACEHOLDER}`;
+  }
+
+  const yy = (date.getFullYear() % 100).toString().padStart(2, "0");
+  const mm = (date.getMonth() + 1).toString().padStart(2, "0");
+  const dd = date.getDate().toString().padStart(2, "0");
+  const hh = date.getHours().toString().padStart(2, "0");
+  const min = date.getMinutes().toString().padStart(2, "0");
+  return `업데이트 시간 : ${yy}/${mm}/${dd} ${hh}:${min}`;
+}
+
 // ---------------------------------------------------------------------------
 // Issue #15 — vehicle detail screen formatters (additive).
 // ---------------------------------------------------------------------------

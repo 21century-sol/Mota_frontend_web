@@ -21,9 +21,15 @@ export default function VehiclesPage({
   const filters = parseVehicleListFilters(searchParams);
 
   return (
-    <div className="flex flex-col gap-8">
-      <h1 className="sr-only">차량 관리</h1>
-      <SummaryCardsSection />
+    // Figma vertical rhythm (node 1:13261): Dashboard gap 28px → [Header gap 20px
+    // [title, summary cards], Vehicle Filter Section].
+    <div className="flex flex-col gap-7">
+      <div className="flex flex-col gap-5">
+        <h1 className="m-0 px-2 text-2xl font-medium leading-[1.5] tracking-[-0.6px] text-dashboard-vehicles-title">
+          차량 관리
+        </h1>
+        <SummaryCardsSection variant="vehicles" />
+      </div>
       <VehicleListSection filters={filters} />
     </div>
   );

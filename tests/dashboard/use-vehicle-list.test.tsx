@@ -23,26 +23,28 @@ function createWrapper() {
 }
 
 describe("useVehicleList", () => {
-  it("resolves with the filtered vehicle list for the given filters (AC1, AC6)", async () => {
+  it("resolves with the filtered vehicle list and refreshedAt for the given filters (AC1, AC6, issue #35)", async () => {
     server.use(vehiclesNormalHandler);
     const { result } = renderHook(
-      () => useVehicleList({ status: "AVAILABLE" }),
+      () => useVehicleList({ status: "AVAILABLE", tireStatus: [] }),
       { wrapper: createWrapper() },
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(result.current.data).toHaveLength(5);
-    expect(result.current.data?.every((v) => v.status === "AVAILABLE")).toBe(
-      true,
-    );
+    expect(result.current.data?.vehicles).toHaveLength(5);
+    expect(
+      result.current.data?.vehicles.every((v) => v.status === "AVAILABLE"),
+    ).toBe(true);
+    expect(result.current.data?.refreshedAt).toBe("2026-07-16T10:00:00.000Z");
   });
 
   it("surfaces a 500 response as a server-error VehicleListFetchError (AC5)", async () => {
     server.use(vehiclesErrorHandler);
-    const { result } = renderHook(() => useVehicleList({}), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHook(
+      () => useVehicleList({ tireStatus: [] }),
+      { wrapper: createWrapper() },
+    );
 
     await waitFor(() => expect(result.current.isError).toBe(true));
 

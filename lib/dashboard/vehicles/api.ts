@@ -83,8 +83,14 @@ export function isVehicleDto(value: unknown): value is VehicleDto {
   );
 }
 
+/** Validated `content` shape — the raw `vehicles` array plus the `refreshedAt` timestamp (issue #35). */
+interface VehicleListEnvelopeContent {
+  vehicles: unknown[];
+  refreshedAt: string;
+}
+
 /**
- * Only the single confirmed envelope shape (`{ statusCode, error, content: { vehicles } }`)
+ * Only the single confirmed envelope shape (`{ statusCode, error, content: { vehicles, refreshedAt } }`)
  * is accepted — no legacy bare-array fallback is needed for this issue
  * (`.claude/handoffs/14-api-specs.md` Contract status: 확정). `statusCode !== 200`
  * or `error !== null` is a business-level failure inside an otherwise
@@ -93,8 +99,12 @@ export function isVehicleDto(value: unknown): value is VehicleDto {
  * #31 summary-card precedent) rather than a
  * {@link VehicleListContractMismatchError}, which stays reserved for a
  * malformed/unexpected shape.
+ *
+ * `content.refreshedAt` (issue #35) is validated here alongside `vehicles`
+ * instead of a second pass over `content`, since both live on the same
+ * already-parsed envelope object.
  */
-function extractVehicleDtoArray(raw: unknown): unknown[] {
+function extractVehicleListContent(raw: unknown): VehicleListEnvelopeContent {
   if (typeof raw !== "object" || raw === null) {
     throw new VehicleListContractMismatchError("response is not an object");
   }
@@ -120,22 +130,31 @@ function extractVehicleDtoArray(raw: unknown): unknown[] {
       "`content` is missing the `vehicles` field",
     );
   }
-  const vehicles = (content as Record<string, unknown>).vehicles;
+  const { vehicles, refreshedAt } = content as Record<string, unknown>;
   if (!Array.isArray(vehicles)) {
     throw new VehicleListContractMismatchError(
       "`content.vehicles` is not an array",
     );
   }
-  return vehicles;
+  if (typeof refreshedAt !== "string") {
+    throw new VehicleListContractMismatchError(
+      "`content.refreshedAt` is missing or not a string",
+    );
+  }
+
+  return { vehicles, refreshedAt };
 }
 
 /**
- * unknown → UI model list. A duplicate `vehicleId` or any entry failing
- * shape/enum validation is treated as a contract mismatch rather than being
- * dropped silently (same precedent as issue #11/#12's `toXxx` adapters).
+ * unknown → UI model list + `refreshedAt` (issue #35). A duplicate
+ * `vehicleId` or any entry failing shape/enum validation is treated as a
+ * contract mismatch rather than being dropped silently (same precedent as
+ * issue #11/#12's `toXxx` adapters).
  */
-export function toVehicleListItems(raw: unknown): VehicleListItem[] {
-  const dtoArray = extractVehicleDtoArray(raw);
+export function toVehicleListItems(
+  raw: unknown,
+): { vehicles: VehicleListItem[]; refreshedAt: string } {
+  const { vehicles: dtoArray, refreshedAt } = extractVehicleListContent(raw);
   const seenIds = new Set<string>();
   const items: VehicleListItem[] = [];
 
@@ -154,7 +173,7 @@ export function toVehicleListItems(raw: unknown): VehicleListItem[] {
     items.push({ ...entry });
   }
 
-  return items;
+  return { vehicles: items, refreshedAt };
 }
 
 /**
@@ -179,10 +198,20 @@ function isAbortSignalBrandMismatch(cause: unknown): boolean {
   );
 }
 
+/**
+ * The confirmed backend contract only accepts a single `tireStatus` value
+ * (`.claude/handoffs/33-api-specs.md`), so a multi-select client selection
+ * (issue #35) can only be forwarded to the server when exactly 1 value is
+ * selected: 0 selected omits the param (no filter), 2+ selected also omits
+ * it and the OR-match across the selected set is instead applied client-side
+ * (`VehicleListSection.tsx`) against the unfiltered response.
+ */
 function buildVehiclesUrl(filters: VehicleListFilters): string {
   const params = new URLSearchParams();
   if (filters.status) params.set("status", filters.status);
-  if (filters.tireStatus) params.set("tireStatus", filters.tireStatus);
+  if (filters.tireStatus.length === 1) {
+    params.set("tireStatus", filters.tireStatus[0]);
+  }
   const query = params.toString();
   return `${dashboardClientEnv.apiBase}${VEHICLES_ENDPOINT_PATH}${query ? `?${query}` : ""}`;
 }
@@ -191,7 +220,7 @@ function buildVehiclesUrl(filters: VehicleListFilters): string {
 export async function fetchVehicles(
   filters: VehicleListFilters,
   signal?: AbortSignal,
-): Promise<VehicleListItem[]> {
+): Promise<{ vehicles: VehicleListItem[]; refreshedAt: string }> {
   const url = buildVehiclesUrl(filters);
   let response: Response;
   try {

@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   formatTireStatusLabel,
   formatVehicleDateLabel,
   formatVehicleListDateLabel,
+  formatVehicleListRefreshedAtLabel,
   NO_VALUE_PLACEHOLDER,
 } from "@/lib/dashboard/vehicles/format";
 
@@ -65,5 +66,30 @@ describe("formatVehicleListDateLabel", () => {
 
   it("renders the explicit placeholder for an unparsable string instead of throwing", () => {
     expect(formatVehicleListDateLabel("not-a-date")).toBe(NO_VALUE_PLACEHOLDER);
+  });
+});
+
+describe("formatVehicleListRefreshedAtLabel (issue #35)", () => {
+  // Pins the test process's local timezone (not just the system clock) so the
+  // local-time getters this formatter intentionally uses (PM Assumption A3)
+  // produce a deterministic result regardless of the machine/CI running it.
+  beforeEach(() => {
+    vi.stubEnv("TZ", "Asia/Seoul");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('formats an ISO timestamp as "업데이트 시간 : YY/MM/DD HH:mm" using local-time getters', () => {
+    expect(formatVehicleListRefreshedAtLabel("2026-07-08T11:41:00.000Z")).toBe(
+      "업데이트 시간 : 26/07/08 20:41",
+    );
+  });
+
+  it("renders the explicit placeholder for an unparsable string instead of throwing", () => {
+    expect(formatVehicleListRefreshedAtLabel("not-a-date")).toBe(
+      `업데이트 시간 : ${NO_VALUE_PLACEHOLDER}`,
+    );
   });
 });

@@ -3,6 +3,7 @@ import type {
   PageInfo,
   ReservationSummaryDto,
   TireDetail,
+  TireStatus,
   TireTrendMetric,
   TireTrendPoint,
   UsageHistoryItem,
@@ -10,8 +11,8 @@ import type {
   VehicleDetailDto,
   VehicleDetailResponse,
   VehicleDto,
-  VehicleListFilters,
   VehicleManagementListResponse,
+  VehicleManagementStatus,
   VehicleTireDetailResponse,
   VehicleTireTrendResponse,
   VehicleUsageHistoryResponse,
@@ -211,10 +212,18 @@ const FIXED_REFRESHED_AT = "2026-07-16T10:00:00.000Z";
  * Mirrors the real endpoint's AND semantics (`.claude/handoffs/14-api-specs.md`)
  * so `vehiclesNormalHandler` and `vehiclesFilteredEmptyHandler` share one
  * implementation instead of two independently-maintained fixture lists.
+ *
+ * `filters` is intentionally the single-value shape the real backend query
+ * actually accepts (`status`/`tireStatus` each 0-or-1 value), not the
+ * client-side `VehicleListFilters` (issue #35 multi-select `tireStatus:
+ * TireStatus[]`) — this fixture only ever needs to emulate the server, which
+ * this handler's caller (`readFiltersFromUrl`,
+ * `lib/dashboard/msw/handlers/vehicles.ts`) already narrows down to before
+ * calling here.
  */
 export function filterVehicleFixture(
   vehicles: VehicleDto[],
-  filters: VehicleListFilters,
+  filters: { status?: VehicleManagementStatus; tireStatus?: TireStatus },
 ): VehicleDto[] {
   return vehicles.filter((vehicle) => {
     if (filters.status && vehicle.status !== filters.status) return false;

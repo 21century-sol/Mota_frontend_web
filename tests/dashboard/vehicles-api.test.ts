@@ -31,9 +31,10 @@ function envelope(vehicles: unknown[]) {
 }
 
 describe("toVehicleListItems", () => {
-  it("maps a normal envelope response to the UI model 1:1 (AC1)", () => {
+  it("maps a normal envelope response to the UI model 1:1, alongside `refreshedAt` (AC1, issue #35)", () => {
     const result = toVehicleListItems(envelope([baseVehicle]));
-    expect(result).toEqual([baseVehicle]);
+    expect(result.vehicles).toEqual([baseVehicle]);
+    expect(result.refreshedAt).toBe("2026-07-16T10:00:00.000Z");
   });
 
   it("passes through null `tireStatus`/`rentedAt`/`returnedAt` instead of dropping the row (AC1)", () => {
@@ -45,7 +46,7 @@ describe("toVehicleListItems", () => {
       returnedAt: null,
     };
     const result = toVehicleListItems(envelope([nullable]));
-    expect(result[0]).toEqual(nullable);
+    expect(result.vehicles[0]).toEqual(nullable);
   });
 
   it("treats a duplicate vehicleId as a contract mismatch instead of silently keeping one", () => {
@@ -84,7 +85,17 @@ describe("toVehicleListItems", () => {
   });
 
   it("returns an empty list for an empty `vehicles` array (AC3), not an error", () => {
-    expect(toVehicleListItems(envelope([]))).toEqual([]);
+    expect(toVehicleListItems(envelope([])).vehicles).toEqual([]);
+  });
+
+  it("treats a `content.refreshedAt` that is missing or not a string as a contract mismatch (issue #35)", () => {
+    expect(() =>
+      toVehicleListItems({
+        statusCode: 200,
+        error: null,
+        content: { vehicles: [] },
+      }),
+    ).toThrow(VehicleListContractMismatchError);
   });
 
   it("treats statusCode >= 500 as a fetch error with kind server-error, not a contract mismatch (issue #33)", () => {
