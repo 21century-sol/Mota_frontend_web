@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -36,7 +37,13 @@ function SidebarLink({
             : `rounded-dashboard-nav ${inactiveTextClassName}`,
         ].join(" ")}
       >
-        <Icon className="h-6 w-6 shrink-0" aria-hidden="true" />
+        <Icon
+          className={[
+            "h-6 w-6 shrink-0",
+            active ? "text-dashboard-nav-active-icon" : "",
+          ].join(" ")}
+          aria-hidden="true"
+        />
         <span>{item.label}</span>
       </Link>
     </li>
@@ -57,26 +64,28 @@ export function Sidebar() {
 
   return (
     <aside className="w-full shrink-0 bg-dashboard-sidebar md:fixed md:inset-y-0 md:left-0 md:flex md:h-screen md:w-[260px] md:flex-col md:overflow-y-auto">
+      {/*
+        Logo mark + wordmark (Figma file nt8U8I48Rcfz8LGNqYvRZv, node 1:12191,
+        verified 2026-07-18, issue #40). The app icon's #5A46FA background is
+        baked into the SVG itself; the prior placeholder's "#5a55f2 confirmed
+        via issue #38" comment referred to the unrelated `dashboard-chart-accent`
+        token, not this logo, and is superseded by this asset.
+      */}
       <div className="flex h-20 items-center gap-2 pl-6">
-        {/*
-          TODO(#10): Figma MCP asset export for the MOTA logo symbol (node 2552:27626)
-          was unavailable in this session (no Figma MCP tool access granted to this
-          agent run). This single-letter mark is a clearly temporary stand-in; replace
-          with the exported SVG under /public/assets/dashboard/ and remove this comment
-          once the asset is available. The fill color below was corrected to the
-          confirmed Figma logo-container color (issue #38, `dashboard-chart-accent`
-          #5a55f2) independent of the pending SVG swap.
-        */}
-        <span
-          aria-hidden="true"
-          className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-lg bg-dashboard-chart-accent text-sm font-bold text-white"
-        >
-          M
-        </span>
-        {/* TODO(#10): Figma MCP asset export for the MOTA wordmark (node 2483:30903) was unavailable; swap this text for the real SVG once exported. */}
-        <span className="text-base font-semibold tracking-tight text-white">
-          MOTA
-        </span>
+        <Image
+          src="/assets/dashboard/mota-app-icon.svg"
+          alt=""
+          width={30}
+          height={30}
+          unoptimized
+        />
+        <Image
+          src="/assets/dashboard/mota-wordmark.svg"
+          alt="MOTA"
+          width={67}
+          height={16}
+          unoptimized
+        />
       </div>
 
       <nav
