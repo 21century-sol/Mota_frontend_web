@@ -11,10 +11,10 @@ vi.mock("next/navigation", () => ({
 import { VehicleFilterBar } from "@/components/dashboard/vehicles/VehicleFilterBar";
 import { VehicleTireStatusFilter } from "@/components/dashboard/vehicles/VehicleTireStatusFilter";
 
-describe("VehicleFilterBar (AC6, AC9)", () => {
+describe("VehicleFilterBar (AC2, AC6)", () => {
   it("marks the current status tab as selected via aria-pressed", () => {
     render(
-      <VehicleFilterBar currentStatus="AVAILABLE" currentTireStatus={undefined} />,
+      <VehicleFilterBar currentStatus="AVAILABLE" currentTireStatus={[]} />,
     );
 
     expect(screen.getByRole("button", { name: "대여 가능" })).toHaveAttribute(
@@ -27,11 +27,11 @@ describe("VehicleFilterBar (AC6, AC9)", () => {
     );
   });
 
-  it("replaces the URL with `?status=` on tab click and preserves the current tireStatus (AC6)", async () => {
+  it("replaces the URL with `?status=` on tab click and preserves the current tireStatus selection (AC6)", async () => {
     replace.mockClear();
     const user = userEvent.setup();
     render(
-      <VehicleFilterBar currentStatus={undefined} currentTireStatus="CAUTION" />,
+      <VehicleFilterBar currentStatus={undefined} currentTireStatus={["CAUTION"]} />,
     );
 
     await user.click(screen.getByRole("button", { name: "대여 가능" }));
@@ -41,11 +41,11 @@ describe("VehicleFilterBar (AC6, AC9)", () => {
     );
   });
 
-  it("clears `status` from the URL when '전체' is clicked, preserving tireStatus", async () => {
+  it("clears `status` from the URL when '전체' is clicked, preserving the tireStatus selection", async () => {
     replace.mockClear();
     const user = userEvent.setup();
     render(
-      <VehicleFilterBar currentStatus="RENTED" currentTireStatus="WARNING" />,
+      <VehicleFilterBar currentStatus="RENTED" currentTireStatus={["WARNING"]} />,
     );
 
     await user.click(screen.getByRole("button", { name: "전체" }));
@@ -59,7 +59,7 @@ describe("VehicleFilterBar (AC6, AC9)", () => {
     replace.mockClear();
     const user = userEvent.setup();
     render(
-      <VehicleFilterBar currentStatus={undefined} currentTireStatus={undefined} />,
+      <VehicleFilterBar currentStatus={undefined} currentTireStatus={[]} />,
     );
 
     const availableTab = screen.getByRole("button", { name: "대여 가능" });
@@ -71,10 +71,10 @@ describe("VehicleFilterBar (AC6, AC9)", () => {
   });
 });
 
-describe("VehicleTireStatusFilter (AC6, AC9)", () => {
+describe("VehicleTireStatusFilter (AC4, AC6)", () => {
   it("marks the current chip as selected via aria-pressed", () => {
     render(
-      <VehicleTireStatusFilter currentStatus={undefined} currentTireStatus="WARNING" />,
+      <VehicleTireStatusFilter currentStatus={undefined} currentTireStatus={["WARNING"]} />,
     );
 
     expect(screen.getByRole("button", { name: "위험" })).toHaveAttribute(
@@ -91,7 +91,7 @@ describe("VehicleTireStatusFilter (AC6, AC9)", () => {
     replace.mockClear();
     const user = userEvent.setup();
     render(
-      <VehicleTireStatusFilter currentStatus="AVAILABLE" currentTireStatus={undefined} />,
+      <VehicleTireStatusFilter currentStatus="AVAILABLE" currentTireStatus={[]} />,
     );
 
     await user.click(screen.getByRole("button", { name: "주의" }));
@@ -101,15 +101,29 @@ describe("VehicleTireStatusFilter (AC6, AC9)", () => {
     );
   });
 
-  it("toggles the selected chip off (clears tireStatus) on a second click", async () => {
+  it("removes the clicked chip from the selection (toggle off) on a second click", async () => {
     replace.mockClear();
     const user = userEvent.setup();
     render(
-      <VehicleTireStatusFilter currentStatus="AVAILABLE" currentTireStatus="CAUTION" />,
+      <VehicleTireStatusFilter currentStatus="AVAILABLE" currentTireStatus={["CAUTION"]} />,
     );
 
     await user.click(screen.getByRole("button", { name: "주의" }));
 
     expect(replace).toHaveBeenCalledWith("/dashboard/vehicles?status=AVAILABLE");
+  });
+
+  it("adds a chip to an existing multi-value selection instead of replacing it (issue #35 AC4)", async () => {
+    replace.mockClear();
+    const user = userEvent.setup();
+    render(
+      <VehicleTireStatusFilter currentStatus={undefined} currentTireStatus={["NORMAL"]} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "위험" }));
+
+    expect(replace).toHaveBeenCalledWith(
+      "/dashboard/vehicles?tireStatus=NORMAL,WARNING",
+    );
   });
 });

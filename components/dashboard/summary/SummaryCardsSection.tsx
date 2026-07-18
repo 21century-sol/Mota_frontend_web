@@ -3,7 +3,10 @@
 import type { VehicleSummaryCounts } from "@/types/dashboard/summary";
 import { VehicleSummaryFetchError } from "@/lib/dashboard/summary/api";
 import { useSummaryCards } from "@/hooks/dashboard/useSummaryCards";
-import { SummaryCard } from "@/components/dashboard/summary/SummaryCard";
+import {
+  SummaryCard,
+  type SummaryCardVariant,
+} from "@/components/dashboard/summary/SummaryCard";
 import { SummaryCardsSkeleton } from "@/components/dashboard/summary/SummaryCardsSkeleton";
 
 const CARD_DEFS: ReadonlyArray<{
@@ -20,7 +23,12 @@ const CARD_DEFS: ReadonlyArray<{
 // row of 4 equal-width cards). PM Assumption A4 / Figma Decision 3
 // (.claude/handoffs/11-figma-specs.md, resolved 2026-07-16): reflow with our own
 // breakpoints instead of reproducing the fixed-width desktop layout on narrow screens.
-const GRID_CLASSNAME = "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4";
+// The `vehicles` variant uses the 8px card gap from Figma node 1:13265; `dashboard`
+// keeps its original 12px gap.
+const GRID_CLASSNAME: Record<SummaryCardVariant, string> = {
+  dashboard: "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4",
+  vehicles: "grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4",
+};
 
 /**
  * `/dashboard` summary cards (issue #11). Client boundary is required for the
@@ -30,7 +38,11 @@ const GRID_CLASSNAME = "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4";
  * Cards are read-only — no click/keyboard interaction is attached (AC5, a
  * documented non-goal), so no button/link semantics are used.
  */
-export function SummaryCardsSection() {
+export function SummaryCardsSection({
+  variant = "dashboard",
+}: {
+  variant?: SummaryCardVariant;
+} = {}) {
   const query = useSummaryCards();
 
   return (
@@ -60,12 +72,17 @@ export function SummaryCardsSection() {
           </button>
         </div>
       ) : (
-        <div aria-busy={query.isPending} className={GRID_CLASSNAME}>
+        <div aria-busy={query.isPending} className={GRID_CLASSNAME[variant]}>
           {query.isPending ? (
-            <SummaryCardsSkeleton />
+            <SummaryCardsSkeleton variant={variant} />
           ) : (
             CARD_DEFS.map(({ key, label }) => (
-              <SummaryCard key={key} label={label} count={query.data[key]} />
+              <SummaryCard
+                key={key}
+                label={label}
+                count={query.data[key]}
+                variant={variant}
+              />
             ))
           )}
         </div>

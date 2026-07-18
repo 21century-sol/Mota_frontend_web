@@ -98,10 +98,18 @@ export interface VehicleDto {
  */
 export interface VehicleListItem extends VehicleDto {}
 
-/** `status`/`tireStatus` query filters. Both optional and independent (AND when both set). */
+/**
+ * `status`/`tireStatus` query filters. `status` stays single-select/optional.
+ * `tireStatus` is multi-select (issue #35 AC4/AC7) — an empty array means "no
+ * filter", never `undefined`, so callers can't forget to handle the
+ * no-selection case. 0/1/2+ selected values change how the filter is applied
+ * (server-side for 0/1, client-side OR-match for 2+) — see
+ * `lib/dashboard/vehicles/api.ts` (`buildVehiclesUrl`) and
+ * `components/dashboard/vehicles/VehicleListSection.tsx`.
+ */
 export interface VehicleListFilters {
   status?: VehicleManagementStatus;
-  tireStatus?: TireStatus;
+  tireStatus: readonly TireStatus[];
 }
 
 export interface VehicleManagementListContent {

@@ -14,6 +14,10 @@ import { vehiclesQueryKeys } from "@/lib/dashboard/vehicles/queryKeys";
  * `.claude/handoffs/14-pm-breakdown.md`); `useInfiniteQuery`/`keepPreviousData`
  * are intentionally not used. `filters` changing (status/tireStatus) produces
  * a new query key, so React Query treats it as a fresh fetch on its own.
+ *
+ * `data` (issue #35) is `{ vehicles, refreshedAt }` — `fetchVehicles` already
+ * shapes the response that way, so a single `useQuery` exposes both the list
+ * and the refresh timestamp without a second query or a `select` transform.
  */
 export function useVehicleList(filters: VehicleListFilters) {
   return useQuery({

@@ -8,7 +8,7 @@ import type {
 } from "@/types/dashboard/vehicle";
 import { buildVehicleListHref } from "@/lib/dashboard/vehicles/url";
 
-/** Figma "Filter Tabs" order (node 2467:25928): 전체/대여 가능/대여 중/운행 불가. */
+/** Figma "Filter Tabs" order (node 1:13290, `.claude/handoffs/35-figma-analysis.md`): 전체/대여 가능/대여 중/운행 불가. */
 const STATUS_TABS: ReadonlyArray<{
   status: VehicleManagementStatus | undefined;
   label: string;
@@ -20,22 +20,32 @@ const STATUS_TABS: ReadonlyArray<{
 ];
 
 /**
- * Vehicle status filter tabs (issue #14, PM Decision 1/4). Selecting a tab
- * writes `?status=` via `router.replace` and forwards the current
- * `tireStatus` unchanged, so switching tabs never resets the tire-status chip
- * selection (AC6).
+ * Vehicle status filter tabs (issue #14, PM Decision 1/4; restyled to an
+ * underline tab pattern for issue #35 AC2). Selecting a tab writes `?status=`
+ * via `router.replace` and forwards the current `tireStatus` selection
+ * unchanged, so switching tabs never resets the tire-status chip selection
+ * (AC6).
+ *
+ * Each tab renders its own 2px bottom indicator (filled only when selected)
+ * instead of one shared underline spanning the row, matching the confirmed
+ * Figma fact that the indicator width is scoped to the tab's own column
+ * (`.claude/handoffs/35-figma-analysis.md`).
  */
 export function VehicleFilterBar({
   currentStatus,
   currentTireStatus,
 }: {
   currentStatus: VehicleManagementStatus | undefined;
-  currentTireStatus: TireStatus | undefined;
+  currentTireStatus: readonly TireStatus[];
 }) {
   const router = useRouter();
 
   return (
-    <div role="group" aria-label="차량 상태 필터" className="flex flex-wrap gap-2">
+    <div
+      role="group"
+      aria-label="차량 상태 필터"
+      className="flex flex-wrap border-b border-dashboard-border"
+    >
       {STATUS_TABS.map(({ status, label }) => {
         const isSelected = status === currentStatus;
 
@@ -53,15 +63,25 @@ export function VehicleFilterBar({
                 }),
               );
             }}
-            className={[
-              "rounded-full px-4 py-2 text-sm font-medium outline-none transition-colors",
-              "focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2",
-              isSelected
-                ? "bg-dashboard-chip-selected-bg text-brand"
-                : "text-dashboard-vehicles-label hover:bg-dashboard-vehicles-surface",
-            ].join(" ")}
+            className="flex flex-col items-center gap-2 pt-3 px-4 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
           >
-            {label}
+            <span
+              className={[
+                "px-3 text-base tracking-[-0.4px]",
+                isSelected
+                  ? "font-bold text-brand"
+                  : "font-medium text-dashboard-text-muted",
+              ].join(" ")}
+            >
+              {label}
+            </span>
+            <span
+              aria-hidden="true"
+              className={[
+                "h-0.5 w-full rounded-full",
+                isSelected ? "bg-brand" : "bg-transparent",
+              ].join(" ")}
+            />
           </button>
         );
       })}

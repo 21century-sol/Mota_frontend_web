@@ -40,7 +40,8 @@ describe("VehicleTable row link (issue #15 AC1/AC2)", () => {
     render(<VehicleTable vehicles={[vehicle]} />);
 
     expect(screen.getByText("12가 3456")).toBeInTheDocument();
-    expect(screen.getByText(/현대 아반떼 하이브리드 · 2022/)).toBeInTheDocument();
+    expect(screen.getByText(/현대 아반떼 하이브리드/)).toBeInTheDocument();
+    expect(screen.getByText("2022년식")).toBeInTheDocument();
     expect(screen.getByText("대여 가능")).toBeInTheDocument();
     expect(screen.getByText("정상")).toBeInTheDocument();
   });

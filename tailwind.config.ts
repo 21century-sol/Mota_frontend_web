@@ -27,6 +27,9 @@ const config: Config = {
         // Dashboard shell tokens (Figma file JRL5IHK20Ocs9hfiGus7Xz, node 2361:23649).
         // Scoped to the dark admin Sidebar/TopBar palette — intentionally NOT shared
         // with the light /rental-checklist tokens above (different values, different theme).
+        // 관리자 화면 프레임 배경 (Figma file nt8U8I48Rcfz8LGNqYvRZv, node 1:13203 "차량관리").
+        // 기존 `dashboard-surface`(#f7f7f8, 검색창 배경)와 값이 미세하게 달라 별도 토큰으로 등록한다.
+        "dashboard-page-bg": "#f7f7fb", // TopBar/Main 콘텐츠 영역 배경
         "dashboard-sidebar": "#0f0f10", // Sidebar 배경 (node 2483:30897)
         "dashboard-nav-active": "rgba(128,124,255,0.2)", // 활성 메뉴 배경
         "dashboard-nav-inactive": "#c2c4c8", // 비활성 메뉴 텍스트
@@ -84,6 +87,12 @@ const config: Config = {
         "dashboard-status-available-bg": "rgba(22,179,56,0.1)",
         "dashboard-status-rented-bg": "rgba(251,150,61,0.1)",
         "dashboard-status-repair-bg": "rgba(251,70,61,0.1)",
+        // Vehicle list thumbnail border (issue #35, Figma file nt8U8I48Rcfz8LGNqYvRZv,
+        // node 1:13334 "Vehicle List Section"). `#eee` also happens to equal
+        // `dashboard-reservation-page-border`, but that token is scoped to a
+        // different domain (reservation pagination) — kept separate per
+        // `.claude/handoffs/35-figma-analysis.md` Mismatch #3.
+        "dashboard-vehicles-image-border": "#eee",
 
         // Dashboard vehicle detail tokens (issue #15, Figma file
         // nt8U8I48Rcfz8LGNqYvRZv, root 1:13715 / 1:14480). New values not present
