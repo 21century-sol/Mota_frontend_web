@@ -140,7 +140,7 @@ function CellLabel({ children }: { children: string }) {
  * "1-column table" on narrow viewports — Safari's table-role behavior here is
  * unverified (no real-device pass performed), and this two-level-deep nested
  * `display: contents` pattern also has a documented WebKit/VoiceOver history
- * of dropping subtree content from the accessibility tree; TODO(#35): confirm
+ * of dropping subtree content from the accessibility tree; TODO(#37): confirm
  * with a real Safari/VoiceOver pass at a 768–1023px viewport before relying on
  * this for production accessibility, tracked as a known limitation until then.
  * The reflow breakpoint is `lg:` (not `md:`) because the fixed 40/15% desktop
