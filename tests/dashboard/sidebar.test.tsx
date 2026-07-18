@@ -23,7 +23,7 @@ describe("Sidebar", () => {
       screen.getByRole("link", { name: "차량 관리" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "예약 내역" }),
+      screen.getByRole("link", { name: "대여 현황" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "고객 문의" }),
@@ -43,7 +43,7 @@ describe("Sidebar", () => {
       "page",
     );
 
-    for (const label of ["대시보드", "예약 내역", "고객 문의", "설정"]) {
+    for (const label of ["대시보드", "대여 현황", "고객 문의", "설정"]) {
       expect(screen.getByRole("link", { name: label })).not.toHaveAttribute(
         "aria-current",
       );

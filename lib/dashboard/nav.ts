@@ -17,7 +17,7 @@ export type NavItem = {
 export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "대시보드", icon: Home },
   { href: "/dashboard/vehicles", label: "차량 관리", icon: Folder },
-  { href: "/dashboard/reservations", label: "예약 내역", icon: Calendar },
+  { href: "/dashboard/reservations", label: "대여 현황", icon: Calendar },
   { href: "/dashboard/inquiries", label: "고객 문의", icon: MessageSquare },
 ];
 
