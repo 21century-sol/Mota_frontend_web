@@ -14,6 +14,7 @@ const RETURNED_ITEM: ReservationItem = {
   rentedAt: "2026-07-19",
   returnedAt: "2026-07-21",
   status: "RETURNED",
+  reportDownloadUrl: "https://mota-app.duckdns.org/reports/res-a.pdf",
 };
 
 const RENTED_ITEM: ReservationItem = {
@@ -25,6 +26,7 @@ const RENTED_ITEM: ReservationItem = {
   rentedAt: "2026-07-15",
   returnedAt: "2026-07-25",
   status: "RENTED",
+  reportDownloadUrl: "",
 };
 
 describe("ReservationTable (AC6, AC7, AC9, AC10)", () => {
@@ -64,11 +66,19 @@ describe("ReservationTable (AC6, AC7, AC9, AC10)", () => {
     expect(rentedRow.queryByRole("button")).not.toBeInTheDocument();
   });
 
-  it("PDF button click is a no-op (no thrown error, no navigation side effect)", async () => {
+  it("opens item.reportDownloadUrl in a new tab when the PDF button is clicked (issue #51 AC4)", async () => {
     const user = userEvent.setup();
+    const windowOpenSpy = vi.spyOn(window, "open").mockImplementation(() => null);
     render(<ReservationTable items={[RETURNED_ITEM]} />);
 
     const pdfButton = screen.getByRole("button", { name: "김모타 리포트 PDF 다운로드" });
-    await expect(user.click(pdfButton)).resolves.toBeUndefined();
+    await user.click(pdfButton);
+
+    expect(windowOpenSpy).toHaveBeenCalledWith(
+      RETURNED_ITEM.reportDownloadUrl,
+      "_blank",
+      "noopener,noreferrer",
+    );
+    windowOpenSpy.mockRestore();
   });
 });
