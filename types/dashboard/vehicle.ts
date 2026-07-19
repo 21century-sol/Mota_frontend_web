@@ -127,24 +127,85 @@ export interface VehicleManagementListResponse {
 // ---------------------------------------------------------------------------
 // Issue #15 — `/dashboard/vehicles/[vehicleId]` detail screen.
 //
-// TODO(#15): Swagger re-check failed twice (502) — every type below is
-// provisional (`.claude/handoffs/15-api-specs.md` "Contract status"). Field
-// names, units and the envelope shape must be re-verified once the real
-// backend contract is confirmed, and the 5 adapters in `lib/dashboard/vehicles/`
-// that consume them re-validated at that point.
+// TODO(#15): the alert-history/usage-history/tire-detail/tire-trend payloads
+// further below are still provisional (`.claude/handoffs/15-api-specs.md`
+// "Contract status") — re-verify field names/units/envelope shape once the
+// real backend contract for those 4 endpoints is confirmed, and re-validate
+// the 4 adapters in `lib/dashboard/vehicles/` that consume them at that
+// point.
+//
+// `VehicleDetailDto`/`VehicleDetailResponse` (the "차량 정보" panel) and
+// `CurrentRental`/`CurrentRentalResponse` (the "예약 내역" panel) below are
+// NOT part of that TODO — both are confirmed against the real backend
+// contract as of issue #42 (`.claude/handoffs/42-api-specs.md`), replacing
+// the #15 provisional `VehicleDetailDto extends VehicleDto` /
+// `ReservationSummaryDto` shapes entirely (breaking change).
 // ---------------------------------------------------------------------------
 
+export type VehicleOption =
+  | "BLACKBOX"
+  | "REAR_CAMERA"
+  | "SUNROOF"
+  | "NAVIGATION"
+  | "HIPASS"
+  | "HEATED_SEAT"
+  | "VENTILATED_SEAT"
+  | "SMART_KEY";
+
+export const VEHICLE_OPTIONS: readonly VehicleOption[] = [
+  "BLACKBOX",
+  "REAR_CAMERA",
+  "SUNROOF",
+  "NAVIGATION",
+  "HIPASS",
+  "HEATED_SEAT",
+  "VENTILATED_SEAT",
+  "SMART_KEY",
+] as const;
+
+export function isVehicleOption(value: unknown): value is VehicleOption {
+  return (
+    typeof value === "string" &&
+    (VEHICLE_OPTIONS as readonly string[]).includes(value)
+  );
+}
+
 /**
- * `GET /api/dashboard/vehicles/{vehicleId}` vehicle payload — extends the
- * #14 list DTO with detail-only fields. `photoUrls[0]` is the main photo, the
- * rest are thumbnails (PM AC4). `lastInspectedAt`/numeric fields are
- * nullable — the UI renders `NO_VALUE_PLACEHOLDER` instead of an empty string.
+ * `GET /api/dashboard/vehicles/{vehicleId}` vehicle payload (issue #42,
+ * confirmed real backend contract) — standalone, no relation to the #14 list
+ * `VehicleDto` (breaking change from the #15 provisional
+ * `VehicleDetailDto extends VehicleDto`). `imageUrls[0]` is the main photo,
+ * the rest are thumbnails (PM display rule); an empty `imageUrls` renders a
+ * standard empty-state placeholder. `options` is a variable-length, unique
+ * array of the 8 confirmed enum codes. `tireStatus` is non-null here, unlike
+ * the list `VehicleDto.tireStatus`, which is nullable.
  */
-export interface VehicleDetailDto extends VehicleDto {
-  photoUrls: string[];
-  options: string[];
-  totalMileageKm: number;
-  lastInspectedAt: string | null;
+export interface VehicleDetailDto {
+  vehicleId: string;
+  imageUrls: string[];
+  plateNumber: string;
+  manufacturer: string;
+  model: string;
+  modelCode: string;
+  modelYear: number;
+  vehicleType: VehicleType;
+  fuelType: FuelType;
+  options: VehicleOption[];
+  mileage: number;
+  lastInspectedAt: string; // "YYYY-MM-DD"
+  tireStatus: TireStatus;
+}
+
+/**
+ * `{statusCode, error, content}` envelope — `content` is the vehicle payload
+ * directly, with no `vehicle`/`reservation` wrapping (issue #42, breaking
+ * change from the #15 provisional `{ vehicle, reservation }` shape below,
+ * which this replaces).
+ */
+export interface VehicleDetailResponse {
+  statusCode: number;
+  error: string | null;
+  content: VehicleDetailDto;
 }
 
 export type WheelPosition = "FL" | "FR" | "RL" | "RR";
@@ -213,29 +274,15 @@ export interface TireTrendPoint {
   rr: number | null;
 }
 
-/** `GET /api/dashboard/vehicles/{vehicleId}` bundled reservation payload (`content.reservation`, nullable). */
-export interface ReservationSummaryDto {
-  reservationId: string;
-  renterName: string;
-  startAt: string;
-  returnAt: string;
-}
-
 /**
- * UI model — adds `daysUntilReturn`. Computed by a pure function that takes
- * `now` as an explicit parameter (never calls `new Date()` internally); only
- * the render-time caller supplies `now` (PM Scope, "new Date() 직접 호출 금지").
- */
-export interface ReservationSummary extends ReservationSummaryDto {
-  daysUntilReturn: number;
-}
-
-/**
- * `GET /api/dashboard/vehicles/{vehicleId}/current-rental` (issue #42/#43, new
- * endpoint, confirmed contract) — a separate endpoint from the detail payload,
- * not the bundled `reservation` field. `startDate`/`endDate` are KST wall-clock
- * strings in `"YYYY.MM.DD HH:mm:ss"` format (not ISO, no timezone suffix) — see
- * `lib/dashboard/vehicles/current-rental-api.ts` `parseKstDateTime`.
+ * `GET /api/dashboard/vehicles/{vehicleId}/current-rental` (issue #42, new
+ * endpoint, confirmed contract) — completely separate from
+ * {@link VehicleDetailResponse} above (no bundled `reservation` field
+ * anymore; replaces the #15 provisional `ReservationSummaryDto`/
+ * `ReservationSummary`, both removed). `startDate`/`endDate` are KST
+ * wall-clock strings in `"YYYY.MM.DD HH:mm:ss"` format — not ISO, no
+ * timezone suffix — see `lib/dashboard/vehicles/current-rental-api.ts`
+ * `parseKstDateTime`.
  */
 export type CurrentRental =
   | { rented: true; renterName: string; startDate: string; endDate: string }
@@ -272,16 +319,6 @@ export interface PageInfo {
   pageSize: number;
   totalCount: number;
   totalPages: number;
-}
-
-/** `{statusCode, error, content}` envelope (provisional, following the #14 precedent). */
-export interface VehicleDetailResponse {
-  statusCode: number;
-  error: string | null;
-  content: {
-    vehicle: VehicleDetailDto;
-    reservation: ReservationSummaryDto | null;
-  };
 }
 
 export interface VehicleAlertHistoryResponse {

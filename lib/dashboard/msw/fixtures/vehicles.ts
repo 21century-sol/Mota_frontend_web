@@ -3,7 +3,6 @@ import type {
   CurrentRental,
   CurrentRentalResponse,
   PageInfo,
-  ReservationSummaryDto,
   TireDetail,
   TireStatus,
   TireTrendMetric,
@@ -250,34 +249,19 @@ export function toVehicleManagementListResponse(
 }
 
 // ---------------------------------------------------------------------------
-// Issue #15 — `/dashboard/vehicles/[vehicleId]` detail-screen fixtures.
-//
-// 4 of the 12 list vehicles above get a full detail fixture set (`.claude/handoffs/15-api-specs.md`
-// fixture table): vehicle-mgmt-001 (all-normal), -003 (WARNING+CAUTION,
-// paginated usage), -004 (null-value coverage, empty usage/alerts), -007
-// (CAUTION-only boundary). `VEHICLE_DETAIL_NOT_FOUND_ID` is a 5th id that is
-// deliberately absent from every fixture map below (AC6).
+// Issue #42 — `/dashboard/vehicles/[vehicleId]` detail + current-rental
+// fixtures (breaking rewrite of the #15 provisional set — standalone
+// `VehicleDetailDto`, `imageUrls`/`mileage`/`modelCode` fields, enum-coded
+// `options`, and the separate `/current-rental` endpoint replacing the
+// bundled `reservation`). The same 4 ids as the #15 detail-screen fixtures
+// below (`.claude/handoffs/15-api-specs.md` fixture table) keep their
+// existing scenario roles: vehicle-mgmt-001 (full: 3 images/3 options),
+// -003 (2 images/3 options), -004 (single image/0 options), -007 (3
+// images/2 options). `VEHICLE_DETAIL_NOT_FOUND_ID` is a 5th id deliberately
+// absent from every fixture map below (AC6).
 // ---------------------------------------------------------------------------
 
 export const VEHICLE_DETAIL_NOT_FOUND_ID = "vehicle-mgmt-999";
-
-function findListFixture(vehicleId: string): VehicleDto {
-  const found = vehiclesNormalFixture.find((vehicle) => vehicle.vehicleId === vehicleId);
-  if (!found) {
-    throw new Error(`fixtures/vehicles.ts: no list fixture entry for ${vehicleId}`);
-  }
-  return found;
-}
-
-function toDetailDto(
-  vehicleId: string,
-  overrides: Pick<
-    VehicleDetailDto,
-    "photoUrls" | "options" | "totalMileageKm" | "lastInspectedAt"
-  >,
-): VehicleDetailDto {
-  return { ...findListFixture(vehicleId), ...overrides };
-}
 
 /** Distinct per-index URL (not one repeated constant) so React list keys in `VehicleInfoPanel` stay unique. */
 function placeholderPhotos(vehicleId: string, count: number): string[] {
@@ -289,60 +273,79 @@ function placeholderPhotos(vehicleId: string, count: number): string[] {
 }
 
 export const vehicleDetailFixturesById: Record<string, VehicleDetailDto> = {
-  "vehicle-mgmt-001": toDetailDto("vehicle-mgmt-001", {
-    photoUrls: placeholderPhotos("vehicle-mgmt-001", 3),
-    options: ["네비게이션", "후방카메라", "하이패스"],
-    totalMileageKm: 15230,
-    lastInspectedAt: "2026-06-01T00:00:00.000Z",
-  }),
-  "vehicle-mgmt-003": toDetailDto("vehicle-mgmt-003", {
-    photoUrls: placeholderPhotos("vehicle-mgmt-003", 2),
-    options: ["네비게이션", "선루프", "통풍시트"],
-    totalMileageKm: 42010,
-    lastInspectedAt: "2026-05-20T00:00:00.000Z",
-  }),
-  "vehicle-mgmt-004": toDetailDto("vehicle-mgmt-004", {
-    photoUrls: placeholderPhotos("vehicle-mgmt-004", 1),
-    options: [],
-    totalMileageKm: 8320,
-    lastInspectedAt: null,
-  }),
-  "vehicle-mgmt-007": toDetailDto("vehicle-mgmt-007", {
-    photoUrls: placeholderPhotos("vehicle-mgmt-007", 3),
-    options: ["네비게이션", "하이패스"],
-    totalMileageKm: 51200,
-    lastInspectedAt: "2026-04-10T00:00:00.000Z",
-  }),
-} satisfies Record<string, VehicleDetailDto>;
-
-/** `null` = no in-progress/upcoming reservation (AC9). */
-export const reservationFixturesById: Record<string, ReservationSummaryDto | null> = {
-  "vehicle-mgmt-001": null,
+  "vehicle-mgmt-001": {
+    vehicleId: "vehicle-mgmt-001",
+    imageUrls: placeholderPhotos("vehicle-mgmt-001", 3),
+    plateNumber: "12가 3456",
+    manufacturer: "현대",
+    model: "아반떼 하이브리드",
+    modelCode: "CN7",
+    modelYear: 2022,
+    vehicleType: "SEDAN",
+    fuelType: "HYBRID",
+    options: ["NAVIGATION", "REAR_CAMERA", "HIPASS"],
+    mileage: 15230,
+    lastInspectedAt: "2026-06-01",
+    tireStatus: "NORMAL",
+  },
   "vehicle-mgmt-003": {
-    reservationId: "reservation-003-01",
-    renterName: "김민준",
-    startAt: "2026-07-15T00:00:00.000Z",
-    returnAt: "2026-07-20T00:00:00.000Z",
+    vehicleId: "vehicle-mgmt-003",
+    imageUrls: placeholderPhotos("vehicle-mgmt-003", 2),
+    plateNumber: "56다 1234",
+    manufacturer: "현대",
+    model: "투싼",
+    modelCode: "NX4",
+    modelYear: 2023,
+    vehicleType: "SUV",
+    fuelType: "DIESEL",
+    options: ["NAVIGATION", "SUNROOF", "VENTILATED_SEAT"],
+    mileage: 42010,
+    lastInspectedAt: "2026-05-20",
+    tireStatus: "WARNING",
   },
-  "vehicle-mgmt-004": null,
+  // Single image + 0 options (PM display rule: options.length===0 → "—").
+  "vehicle-mgmt-004": {
+    vehicleId: "vehicle-mgmt-004",
+    imageUrls: placeholderPhotos("vehicle-mgmt-004", 1),
+    plateNumber: "78라 4321",
+    manufacturer: "기아",
+    model: "모닝",
+    modelCode: "JA",
+    modelYear: 2020,
+    vehicleType: "HATCHBACK",
+    fuelType: "GASOLINE",
+    options: [],
+    mileage: 8320,
+    lastInspectedAt: "2026-04-15",
+    tireStatus: "NORMAL",
+  },
   "vehicle-mgmt-007": {
-    reservationId: "reservation-007-01",
-    renterName: "이서연",
-    startAt: "2026-07-05T04:00:00.000Z",
-    returnAt: "2026-07-18T00:00:00.000Z",
+    vehicleId: "vehicle-mgmt-007",
+    imageUrls: placeholderPhotos("vehicle-mgmt-007", 3),
+    plateNumber: "22사 2222",
+    manufacturer: "기아",
+    model: "스포티지",
+    modelCode: "NQ5",
+    modelYear: 2022,
+    vehicleType: "SUV",
+    fuelType: "DIESEL",
+    options: ["NAVIGATION", "HIPASS"],
+    mileage: 51200,
+    lastInspectedAt: "2026-04-10",
+    tireStatus: "CAUTION",
   },
-} satisfies Record<string, ReservationSummaryDto | null>;
+} satisfies Record<string, VehicleDetailDto>;
 
 /**
  * `GET /api/dashboard/vehicles/{vehicleId}/current-rental` fixtures (issue
- * #42/#43). All wire date strings are computed by hand against a fixed
- * reference instant — `FIXED_NOW_KST = "2026.07.19 12:00:00"` (KST) — never via
+ * #42). All wire date strings are computed by hand against a fixed reference
+ * instant — `FIXED_NOW_KST = "2026.07.19 12:00:00"` (KST) — never via
  * `new Date()`, so scenario boundaries stay deterministic across test runs.
  *
- * `vehicle-mgmt-013` is a 5th id (not present in `vehicleDetailFixturesById`)
- * used only to exercise the overdue scenario — the "예약 내역" panel and its
- * `useVehicleCurrentRental` query are independent of the detail fixture set
- * (separate endpoint), so this is a valid, isolated scenario id.
+ * `vehicle-mgmt-013` is a 5th id (not present in `vehicleDetailFixturesById`
+ * above) used only to exercise the overdue scenario — the "예약 내역" panel
+ * and its `useVehicleCurrentRental` query are independent of the detail
+ * fixture set (separate endpoint), so this is a valid, isolated scenario id.
  */
 export const FIXED_NOW_KST = "2026.07.19 12:00:00";
 
@@ -555,22 +558,15 @@ export const tireTrendFixturesById: Record<string, Record<TireTrendMetric, TireT
 export function toVehicleDetailResponse(vehicleId: string): VehicleDetailResponse | null {
   const vehicle = vehicleDetailFixturesById[vehicleId];
   if (!vehicle) return null;
-  return {
-    statusCode: 200,
-    error: null,
-    content: {
-      vehicle,
-      reservation: reservationFixturesById[vehicleId] ?? null,
-    },
-  };
+  return { statusCode: 200, error: null, content: vehicle };
 }
 
 /**
  * Unlike {@link toVehicleDetailResponse}, an unrecognized `vehicleId` falls
- * back to `{ rented: false }` instead of `null` — the confirmed contract has no
- * dedicated not-found case for this endpoint, so any vehicle without a
- * dedicated current-rental fixture is treated as "no current rental" rather
- * than a 404.
+ * back to `{ rented: false }` instead of `null` — the confirmed contract has
+ * no dedicated not-found case for this endpoint (`.claude/handoffs/42-api-specs.md`
+ * "Non-blocking Design Notes"), so any vehicle without a dedicated current-rental
+ * fixture is treated as "no current rental" rather than a 404.
  */
 export function toCurrentRentalResponse(vehicleId: string): CurrentRentalResponse {
   return {

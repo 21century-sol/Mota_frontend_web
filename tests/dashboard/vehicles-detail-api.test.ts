@@ -1,85 +1,128 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  computeReservationSummary,
-  toVehicleDetailResult,
+  toVehicleDetailDto,
   VehicleDetailContractMismatchError,
+  VehicleDetailFetchError,
 } from "@/lib/dashboard/vehicles/detail-api";
-import type { ReservationSummaryDto, VehicleDetailDto } from "@/types/dashboard/vehicle";
+import type { VehicleDetailDto } from "@/types/dashboard/vehicle";
 
 const baseVehicle: VehicleDetailDto = {
   vehicleId: "vehicle-mgmt-001",
+  imageUrls: ["https://mota-app.duckdns.org/uploads/vehicles/main.jpg"],
   plateNumber: "12가 3456",
-  model: "아반떼 하이브리드",
-  modelYear: 2022,
   manufacturer: "현대",
+  model: "아반떼 하이브리드",
+  modelCode: "CN7",
+  modelYear: 2022,
   vehicleType: "SEDAN",
   fuelType: "HYBRID",
-  imageUrl: "https://mota-app.duckdns.org/uploads/vehicles/vehicle-mgmt-001.jpg",
-  status: "AVAILABLE",
+  options: ["NAVIGATION"],
+  mileage: 15230,
+  lastInspectedAt: "2026-06-01",
   tireStatus: "NORMAL",
-  rentedAt: null,
-  returnedAt: null,
-  photoUrls: ["https://mota-app.duckdns.org/uploads/vehicles/main.jpg"],
-  options: ["네비게이션"],
-  totalMileageKm: 15230,
-  lastInspectedAt: "2026-06-01T00:00:00.000Z",
 };
 
-const baseReservation: ReservationSummaryDto = {
-  reservationId: "reservation-001",
-  renterName: "김민준",
-  startAt: "2026-07-15T00:00:00.000Z",
-  returnAt: "2026-07-20T00:00:00.000Z",
-};
-
-function envelope(vehicle: unknown, reservation: unknown) {
-  return { statusCode: 200, error: null, content: { vehicle, reservation } };
+function envelope(
+  content: unknown,
+  overrides: { statusCode?: number; error?: string | null } = {},
+) {
+  return {
+    statusCode: overrides.statusCode ?? 200,
+    error: overrides.error ?? null,
+    content,
+  };
 }
 
-describe("toVehicleDetailResult", () => {
-  it("maps a normal envelope with a reservation (AC4, AC8)", () => {
-    const result = toVehicleDetailResult(envelope(baseVehicle, baseReservation));
-    expect(result.vehicle).toEqual(baseVehicle);
-    expect(result.reservation).toEqual(baseReservation);
+describe("toVehicleDetailDto", () => {
+  it("maps a normal envelope to the vehicle payload directly (no vehicle/reservation wrapping, issue #42)", () => {
+    const result = toVehicleDetailDto(envelope(baseVehicle));
+    expect(result).toEqual(baseVehicle);
   });
 
-  it("maps a null reservation to null instead of throwing (AC9)", () => {
-    const result = toVehicleDetailResult(envelope(baseVehicle, null));
-    expect(result.reservation).toBeNull();
+  it("accepts an empty options array (0 options — PM display rule handled at render time)", () => {
+    const vehicle: VehicleDetailDto = { ...baseVehicle, options: [] };
+    const result = toVehicleDetailDto(envelope(vehicle));
+    expect(result.options).toEqual([]);
   });
 
-  it("treats a missing `content.vehicle` field as a contract mismatch", () => {
-    expect(() => toVehicleDetailResult({ statusCode: 200, error: null, content: {} })).toThrow(
+  it("accepts a variable-length, unique options array", () => {
+    const vehicle: VehicleDetailDto = {
+      ...baseVehicle,
+      options: ["NAVIGATION", "HIPASS", "BLACKBOX", "SUNROOF"],
+    };
+    const result = toVehicleDetailDto(envelope(vehicle));
+    expect(result.options).toEqual(["NAVIGATION", "HIPASS", "BLACKBOX", "SUNROOF"]);
+  });
+
+  it("treats a response missing `content` as a contract mismatch", () => {
+    expect(() => toVehicleDetailDto({ statusCode: 200, error: null })).toThrow(
       VehicleDetailContractMismatchError,
     );
   });
 
-  it("treats an invalid vehicle shape (missing totalMileageKm) as a contract mismatch", () => {
-    const { totalMileageKm: _omit, ...withoutMileage } = baseVehicle;
-    expect(() => toVehicleDetailResult(envelope(withoutMileage, null))).toThrow(
+  it("treats an invalid vehicle shape (missing `mileage`) as a contract mismatch", () => {
+    const { mileage: _omit, ...withoutMileage } = baseVehicle;
+    expect(() => toVehicleDetailDto(envelope(withoutMileage))).toThrow(
       VehicleDetailContractMismatchError,
     );
   });
 
-  it("treats an invalid reservation shape as a contract mismatch", () => {
+  it("treats an unknown option enum code (e.g. a Korean label) as a contract mismatch", () => {
+    const vehicle = { ...baseVehicle, options: ["네비게이션"] };
+    expect(() => toVehicleDetailDto(envelope(vehicle))).toThrow(
+      VehicleDetailContractMismatchError,
+    );
+  });
+
+  it("treats a duplicate option code (uniqueItems violation) as a contract mismatch", () => {
+    const vehicle = { ...baseVehicle, options: ["NAVIGATION", "NAVIGATION"] };
+    expect(() => toVehicleDetailDto(envelope(vehicle))).toThrow(
+      VehicleDetailContractMismatchError,
+    );
+  });
+
+  it("treats a null `tireStatus` as a contract mismatch (non-null per the confirmed contract)", () => {
+    const vehicle = { ...baseVehicle, tireStatus: null };
+    expect(() => toVehicleDetailDto(envelope(vehicle))).toThrow(
+      VehicleDetailContractMismatchError,
+    );
+  });
+
+  it("treats a `lastInspectedAt` not in YYYY-MM-DD format as a contract mismatch", () => {
+    const vehicle = { ...baseVehicle, lastInspectedAt: "2026-06-01T00:00:00.000Z" };
+    expect(() => toVehicleDetailDto(envelope(vehicle))).toThrow(
+      VehicleDetailContractMismatchError,
+    );
+  });
+
+  it("treats a non-200 statusCode as a business-failure fetch error, not a contract mismatch (PM Assumption A4)", () => {
+    expect(() => toVehicleDetailDto(envelope(baseVehicle, { statusCode: 500 }))).toThrow(
+      VehicleDetailFetchError,
+    );
+  });
+
+  it("treats a non-null `error` field as a business-failure fetch error", () => {
     expect(() =>
-      toVehicleDetailResult(envelope(baseVehicle, { renterName: "김민준" })),
-    ).toThrow(VehicleDetailContractMismatchError);
-  });
-});
-
-describe("computeReservationSummary", () => {
-  it("computes daysUntilReturn from the injected `now`, never calling Date.now() itself", () => {
-    const now = new Date("2026-07-16T00:00:00.000Z");
-    const summary = computeReservationSummary(baseReservation, now);
-    expect(summary.daysUntilReturn).toBe(4);
-    expect(summary.renterName).toBe("김민준");
+      toVehicleDetailDto(envelope(baseVehicle, { statusCode: 200, error: "VEHICLE_NOT_ACTIVE" })),
+    ).toThrow(VehicleDetailFetchError);
   });
 
-  it("rounds up a sub-day remainder instead of showing 0일", () => {
-    const now = new Date("2026-07-19T23:00:00.000Z");
-    const summary = computeReservationSummary(baseReservation, now);
-    expect(summary.daysUntilReturn).toBe(1);
+  it("classifies a 4xx business failure as client-error and a 5xx as server-error", () => {
+    try {
+      toVehicleDetailDto(envelope(baseVehicle, { statusCode: 400 }));
+      expect.unreachable();
+    } catch (error) {
+      expect(error).toBeInstanceOf(VehicleDetailFetchError);
+      expect((error as VehicleDetailFetchError).kind).toBe("client-error");
+    }
+
+    try {
+      toVehicleDetailDto(envelope(baseVehicle, { statusCode: 503 }));
+      expect.unreachable();
+    } catch (error) {
+      expect(error).toBeInstanceOf(VehicleDetailFetchError);
+      expect((error as VehicleDetailFetchError).kind).toBe("server-error");
+    }
   });
 });

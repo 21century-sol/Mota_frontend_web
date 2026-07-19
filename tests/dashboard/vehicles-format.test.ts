@@ -3,8 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   formatTireStatusLabel,
   formatVehicleDateLabel,
+  formatVehicleInfoFuelTypeLabel,
   formatVehicleListDateLabel,
   formatVehicleListRefreshedAtLabel,
+  formatVehicleOptionLabel,
   NO_VALUE_PLACEHOLDER,
 } from "@/lib/dashboard/vehicles/format";
 
@@ -91,5 +93,31 @@ describe("formatVehicleListRefreshedAtLabel (issue #35)", () => {
     expect(formatVehicleListRefreshedAtLabel("not-a-date")).toBe(
       `업데이트 시간 : ${NO_VALUE_PLACEHOLDER}`,
     );
+  });
+});
+
+describe("formatVehicleInfoFuelTypeLabel (issue #42, Car Info panel-only)", () => {
+  it.each([
+    ["GASOLINE", "가솔린차"],
+    ["DIESEL", "디젤차"],
+    ["HYBRID", "하이브리드차"],
+    ["ELECTRIC", "전기차"],
+  ] as const)("maps %s to %s (distinct from the shared formatFuelTypeLabel's '가솔린' etc.)", (type, label) => {
+    expect(formatVehicleInfoFuelTypeLabel(type)).toBe(label);
+  });
+});
+
+describe("formatVehicleOptionLabel (issue #42)", () => {
+  it.each([
+    ["NAVIGATION", "내비게이션"],
+    ["HIPASS", "하이패스"],
+    ["BLACKBOX", "블랙박스"],
+    ["HEATED_SEAT", "열선 시트"],
+    ["SMART_KEY", "스마트키"],
+    ["SUNROOF", "선루프"],
+    ["VENTILATED_SEAT", "통풍 시트"],
+    ["REAR_CAMERA", "후방 카메라"],
+  ] as const)("maps %s to %s", (option, label) => {
+    expect(formatVehicleOptionLabel(option)).toBe(label);
   });
 });

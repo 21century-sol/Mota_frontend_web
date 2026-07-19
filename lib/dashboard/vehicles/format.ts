@@ -2,6 +2,7 @@ import type {
   FuelType,
   TireStatus,
   TireTrendMetric,
+  VehicleOption,
   VehicleType,
   WheelPosition,
 } from "@/types/dashboard/vehicle";
@@ -161,4 +162,40 @@ const FUEL_TYPE_LABELS: Record<FuelType, string> = {
 
 export function formatFuelTypeLabel(type: FuelType): string {
   return FUEL_TYPE_LABELS[type];
+}
+
+// ---------------------------------------------------------------------------
+// Issue #42 — Car Info panel-only label maps (additive). These are distinct
+// from `formatFuelTypeLabel`/`formatVehicleTypeLabel` above (which stay
+// unchanged and are shared with other screens) — the Car Info panel's
+// confirmed copy ("가솔린차" etc.) differs from the shared fuel label
+// ("가솔린" etc.), so a second map is used instead of changing the shared one.
+// ---------------------------------------------------------------------------
+
+const VEHICLE_INFO_FUEL_TYPE_LABELS: Record<FuelType, string> = {
+  GASOLINE: "가솔린차",
+  DIESEL: "디젤차",
+  HYBRID: "하이브리드차",
+  ELECTRIC: "전기차",
+};
+
+/** Car Info panel-only fuel label (PM confirmed copy, issue #42) — never used outside `VehicleInfoPanel`. */
+export function formatVehicleInfoFuelTypeLabel(type: FuelType): string {
+  return VEHICLE_INFO_FUEL_TYPE_LABELS[type];
+}
+
+const VEHICLE_OPTION_LABELS: Record<VehicleOption, string> = {
+  NAVIGATION: "내비게이션",
+  HIPASS: "하이패스",
+  BLACKBOX: "블랙박스",
+  HEATED_SEAT: "열선 시트",
+  SMART_KEY: "스마트키",
+  SUNROOF: "선루프",
+  VENTILATED_SEAT: "통풍 시트",
+  REAR_CAMERA: "후방 카메라",
+};
+
+/** Car Info panel option chip label (PM confirmed copy, issue #42). */
+export function formatVehicleOptionLabel(option: VehicleOption): string {
+  return VEHICLE_OPTION_LABELS[option];
 }

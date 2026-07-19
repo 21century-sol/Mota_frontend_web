@@ -6,12 +6,11 @@ import { Car } from "lucide-react";
 import type { VehicleDetailDto } from "@/types/dashboard/vehicle";
 import {
   NO_VALUE_PLACEHOLDER,
-  formatFuelTypeLabel,
+  formatTireStatusLabel,
   formatVehicleDateLabel,
-  formatVehicleTypeLabel,
+  formatVehicleInfoFuelTypeLabel,
+  formatVehicleOptionLabel,
 } from "@/lib/dashboard/vehicles/format";
-import { computeTireStatusSummaryLabel } from "@/lib/dashboard/vehicles/tire";
-import { useVehicleTireDetail } from "@/hooks/dashboard/useVehicleTireDetail";
 
 function VehiclePhoto({
   src,
@@ -46,16 +45,22 @@ function VehiclePhoto({
 }
 
 /**
- * Car Info panel (issue #15, Figma "Car Info Container", PM AC4): photo +
- * thumbnails, identity fields, options and the 3 Car Stats. Owns its own
- * `useVehicleTireDetail` call to derive the "타이어상태" stat — this is the
- * same query `TireStatusTab` uses, so React Query dedupes the network
- * request via the shared query key rather than fetching twice.
+ * Car Info panel (issue #42, Figma "Car Info Container" node 1:13848):
+ * photo + thumbnails, identity fields, options and the 3 Car Stats.
+ * `vehicle.tireStatus` (from `getVehicleDetail`, confirmed non-null) is used
+ * directly for the "타이어상태" stat — this panel no longer calls
+ * `useVehicleTireDetail`/`/tires`, which was a separate, unrelated endpoint
+ * (issue #42 breaking change from #15).
+ *
+ * `manufacturer + " " + model` is rendered as the 차종 label with no
+ * brackets/`modelCode` (PM confirmed display rule) — Figma's node shows a
+ * bracketed `[manufacturer model modelCode]` style, a known, already-resolved
+ * visual difference (`.claude/handoffs/42-figma-specs.md` Confirmed Design
+ * Facts).
  */
 export function VehicleInfoPanel({ vehicle }: { vehicle: VehicleDetailDto }) {
-  const tireDetailQuery = useVehicleTireDetail(vehicle.vehicleId);
-  const mainPhoto = vehicle.photoUrls[0];
-  const thumbnails = vehicle.photoUrls.slice(1);
+  const mainPhoto = vehicle.imageUrls[0];
+  const thumbnails = vehicle.imageUrls.slice(1);
 
   return (
     <section
@@ -94,8 +99,8 @@ export function VehicleInfoPanel({ vehicle }: { vehicle: VehicleDetailDto }) {
           {vehicle.plateNumber}
         </p>
         <p className="m-0 text-sm text-dashboard-vehicles-label">
-          {vehicle.manufacturer} {vehicle.model} · {vehicle.modelYear} ·{" "}
-          {formatVehicleTypeLabel(vehicle.vehicleType)} · {formatFuelTypeLabel(vehicle.fuelType)}
+          {vehicle.manufacturer} {vehicle.model} · {vehicle.modelYear}년식 ·{" "}
+          {formatVehicleInfoFuelTypeLabel(vehicle.fuelType)}
         </p>
       </div>
 
@@ -108,9 +113,9 @@ export function VehicleInfoPanel({ vehicle }: { vehicle: VehicleDetailDto }) {
             {vehicle.options.map((option) => (
               <li
                 key={option}
-                className="rounded-full bg-dashboard-vehicles-surface px-3 py-1 text-xs text-dashboard-vehicles-title"
+                className="rounded bg-dashboard-vehicles-surface px-3 py-1 text-xs text-dashboard-vehicles-title"
               >
-                {option}
+                {formatVehicleOptionLabel(option)}
               </li>
             ))}
           </ul>
@@ -121,7 +126,7 @@ export function VehicleInfoPanel({ vehicle }: { vehicle: VehicleDetailDto }) {
         <div>
           <dt className="m-0 text-xs text-dashboard-vehicles-label">누적 주행거리</dt>
           <dd className="m-0 mt-1 text-sm font-semibold text-dashboard-vehicles-title">
-            {vehicle.totalMileageKm.toLocaleString("ko-KR")}km
+            {vehicle.mileage.toLocaleString("ko-KR")}km
           </dd>
         </div>
         <div>
@@ -133,7 +138,7 @@ export function VehicleInfoPanel({ vehicle }: { vehicle: VehicleDetailDto }) {
         <div>
           <dt className="m-0 text-xs text-dashboard-vehicles-label">타이어 상태</dt>
           <dd className="m-0 mt-1 text-sm font-semibold text-dashboard-vehicles-title">
-            {computeTireStatusSummaryLabel(tireDetailQuery.data)}
+            {formatTireStatusLabel(vehicle.tireStatus)}
           </dd>
         </div>
       </dl>
