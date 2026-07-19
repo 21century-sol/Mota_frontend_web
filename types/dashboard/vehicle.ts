@@ -230,6 +230,23 @@ export interface ReservationSummary extends ReservationSummaryDto {
   daysUntilReturn: number;
 }
 
+/**
+ * `GET /api/dashboard/vehicles/{vehicleId}/current-rental` (issue #42/#43, new
+ * endpoint, confirmed contract) — a separate endpoint from the detail payload,
+ * not the bundled `reservation` field. `startDate`/`endDate` are KST wall-clock
+ * strings in `"YYYY.MM.DD HH:mm:ss"` format (not ISO, no timezone suffix) — see
+ * `lib/dashboard/vehicles/current-rental-api.ts` `parseKstDateTime`.
+ */
+export type CurrentRental =
+  | { rented: true; renterName: string; startDate: string; endDate: string }
+  | { rented: false };
+
+export interface CurrentRentalResponse {
+  statusCode: number;
+  error: string | null;
+  content: CurrentRental;
+}
+
 /** `GET /api/dashboard/vehicles/{vehicleId}/alerts` item. `tirePosition` is null for non-tire alerts. */
 export interface AlertHistoryItem {
   id: string;

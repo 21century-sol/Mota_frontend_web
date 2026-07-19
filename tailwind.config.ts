@@ -159,6 +159,13 @@ const config: Config = {
         // 예약 날짜 팝오버 이중 그림자 (issue #29, node 1:12762 "달력").
         "dashboard-popover":
           "0px 2px 4px rgba(0,0,0,0.2), 8px 3px 22px 10px rgba(150,150,150,0.11)",
+        // 차량 상세 "예약 내역" 카드 그림자 (issue #42, node 1:13775/1:14540,
+        // `.claude/handoffs/42-figma-specs.md` Token Mapping). Registered under
+        // `boxShadow` (not `dropShadow`, which this repo reserves for SVG
+        // `filter: drop-shadow` elements like `dashboard-tooltip` below) since
+        // this shadows a plain HTML card, matching `dashboard-card`/
+        // `dashboard-tire-card`/`dashboard-popover` above.
+        "dashboard-reservation-card": "0px 14px 27px rgba(0,0,0,0.03)",
       },
       dropShadow: {
         // 차트 강조 포인트 툴팁 그림자 (node 2361:23766). SVG 요소는 CSS `box-shadow`가

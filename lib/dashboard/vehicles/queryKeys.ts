@@ -6,8 +6,10 @@ import type { TireTrendMetric, VehicleListFilters } from "@/types/dashboard/vehi
  * (PM Decision 3, `.claude/handoffs/14-pm-breakdown.md`).
  *
  * `detail`/`alertHistory`/`usageHistory`/`tireDetail`/`tireTrend` (issue #15,
- * additive) key the `/dashboard/vehicles/[vehicleId]` screen's 5 queries —
- * `list` above is unchanged.
+ * additive) key the `/dashboard/vehicles/[vehicleId]` screen's queries —
+ * `list` above is unchanged. `currentRental` (issue #42, additive) keys the
+ * separate `/current-rental` endpoint — distinct from `detail` since the two
+ * are now independent queries against independent endpoints.
  */
 export const vehiclesQueryKeys = {
   all: ["dashboard", "vehicles"] as const,
@@ -19,6 +21,8 @@ export const vehiclesQueryKeys = {
     ] as const,
   detail: (vehicleId: string) =>
     [...vehiclesQueryKeys.all, "detail", vehicleId] as const,
+  currentRental: (vehicleId: string) =>
+    [...vehiclesQueryKeys.all, "currentRental", vehicleId] as const,
   alertHistory: (vehicleId: string) =>
     [...vehiclesQueryKeys.all, "alertHistory", vehicleId] as const,
   usageHistory: (vehicleId: string, page: number) =>

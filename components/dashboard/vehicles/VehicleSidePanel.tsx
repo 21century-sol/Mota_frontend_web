@@ -1,26 +1,23 @@
 "use client";
 
-import type { ReservationSummaryDto } from "@/types/dashboard/vehicle";
+import { CurrentRentalFetchError } from "@/lib/dashboard/vehicles/current-rental-api";
 import { VehicleAlertHistoryFetchError } from "@/lib/dashboard/vehicles/alert-history-api";
 import { useVehicleAlertHistory } from "@/hooks/dashboard/useVehicleAlertHistory";
+import { useVehicleCurrentRental } from "@/hooks/dashboard/useVehicleCurrentRental";
 import { ReservationSummaryCard } from "@/components/dashboard/vehicles/ReservationSummaryCard";
 import { AlertHistoryList } from "@/components/dashboard/vehicles/AlertHistoryList";
 
 /**
- * Right-hand side panel (issue #15, Figma "Sidebar Container", PM AC8-AC11):
- * reservation summary + alert history. `reservation` comes bundled in the
- * `useVehicleDetail` response (`VehicleDetailSection` owns that query); alert
- * history is fetched independently here via `useVehicleAlertHistory`, owning
- * its own loading/empty/error+retry branching (same split as
- * `AlertsAndMapSection`, issue #12).
+ * Right-hand side panel (issue #42, Figma "Sidebar Container", nodes
+ * 1:13775/1:14540): reservation summary + alert history. Owns its own
+ * `useVehicleCurrentRental` query against the separate `/current-rental`
+ * endpoint (breaking change from #15, where `reservation` was bundled inside
+ * the main detail response and passed down as a prop) — loading/empty
+ * (`rented: false`)/error+retry/success are branched explicitly here, same
+ * split as the alert history section below.
  */
-export function VehicleSidePanel({
-  vehicleId,
-  reservation,
-}: {
-  vehicleId: string;
-  reservation: ReservationSummaryDto | null;
-}) {
+export function VehicleSidePanel({ vehicleId }: { vehicleId: string }) {
+  const currentRentalQuery = useVehicleCurrentRental(vehicleId);
   const alertHistoryQuery = useVehicleAlertHistory(vehicleId);
   const alerts = alertHistoryQuery.data ?? [];
 
@@ -33,13 +30,36 @@ export function VehicleSidePanel({
         >
           예약 현황
         </h2>
-        {reservation ? (
-          <ReservationSummaryCard reservation={reservation} />
-        ) : (
-          <p role="status" className="m-0 py-4 text-sm text-dashboard-vehicles-label">
-            현재 예약된 내역이 없습니다.
-          </p>
-        )}
+        <div aria-busy={currentRentalQuery.isPending}>
+          {currentRentalQuery.isError ? (
+            <div role="alert" className="flex flex-col items-start gap-2 py-4">
+              <p className="m-0 text-sm font-medium text-dashboard-vehicles-title">
+                {currentRentalQuery.error instanceof CurrentRentalFetchError
+                  ? currentRentalQuery.error.userMessage
+                  : "예약 내역을 불러오지 못했습니다."}
+              </p>
+              <button
+                type="button"
+                onClick={() => currentRentalQuery.refetch()}
+                disabled={currentRentalQuery.isFetching}
+                aria-busy={currentRentalQuery.isFetching}
+                className="rounded-full bg-dashboard-sidebar px-3 py-1.5 text-xs font-medium text-white outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-dashboard-sidebar focus-visible:ring-offset-2 disabled:opacity-60"
+              >
+                {currentRentalQuery.isFetching ? "다시 시도하는 중..." : "다시 시도"}
+              </button>
+            </div>
+          ) : currentRentalQuery.isPending ? (
+            <p className="m-0 py-4 text-sm text-dashboard-vehicles-label">
+              예약 내역을 불러오는 중입니다.
+            </p>
+          ) : currentRentalQuery.data.rented ? (
+            <ReservationSummaryCard rental={currentRentalQuery.data} />
+          ) : (
+            <p role="status" className="m-0 py-4 text-sm text-dashboard-vehicles-label">
+              현재 예약된 내역이 없습니다.
+            </p>
+          )}
+        </div>
       </section>
 
       <section aria-labelledby="vehicle-alert-history-heading">

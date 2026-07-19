@@ -1,35 +1,68 @@
-import type { ReservationSummaryDto } from "@/types/dashboard/vehicle";
-import { computeReservationSummary } from "@/lib/dashboard/vehicles/detail-api";
-import { formatVehicleDateLabel } from "@/lib/dashboard/vehicles/format";
+"use client";
+
+import { useEffect, useState } from "react";
+import { Calendar, User } from "lucide-react";
+
+import type { CurrentRental } from "@/types/dashboard/vehicle";
+import {
+  OVERDUE_REMAINING_LABEL,
+  computeRemainingLabel,
+  formatKstWireDateLabel,
+  parseKstDateTime,
+} from "@/lib/dashboard/vehicles/current-rental-api";
+
+type RentedCurrentRental = Extract<CurrentRental, { rented: true }>;
+
+const TICK_INTERVAL_MS = 60_000;
 
 /**
- * Reservation summary card (issue #15, Figma "Reservation Container", PM
- * AC8/AC9). `reservation` is `null` when the vehicle has no in-progress/
- * upcoming reservation — `VehicleSidePanel` renders this component only when
- * non-null and an explicit empty state otherwise, so this component never
- * needs its own null branch.
+ * Reservation summary card (issue #42, Figma "Reservation Container" node
+ * 1:13775, PM 잔여시간 표시 규칙). `VehicleSidePanel` renders this only when
+ * `currentRentalQuery.data.rented === true`, so this component never needs
+ * its own empty branch.
  *
- * `new Date()` is called here (the render-time caller), not inside
- * `computeReservationSummary` itself — that pure function takes `now` as an
- * explicit parameter so tests can inject a fixed instant.
+ * `now` is only ever created on the client (inside `useEffect`) and stays
+ * `null` until the first effect runs, so the countdown label is never part
+ * of the server-rendered / first client-rendered output — this avoids an
+ * SSR/CSR hydration mismatch that a top-level `new Date()` call would cause
+ * (PM Scope "new Date() 직접 호출 금지"). A 60s `setInterval` re-ticks `now`
+ * and is cleared on unmount.
  */
-export function ReservationSummaryCard({
-  reservation,
-}: {
-  reservation: ReservationSummaryDto;
-}) {
-  const summary = computeReservationSummary(reservation, new Date());
+export function ReservationSummaryCard({ rental }: { rental: RentedCurrentRental }) {
+  const [now, setNow] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setNow(new Date());
+    const intervalId = setInterval(() => setNow(new Date()), TICK_INTERVAL_MS);
+    return () => clearInterval(intervalId);
+  }, []);
+
+  const endDate = parseKstDateTime(rental.endDate);
+  const remainingLabel = now ? computeRemainingLabel(endDate, now) : null;
+  const isOverdue = remainingLabel === OVERDUE_REMAINING_LABEL;
 
   return (
-    <div className="rounded-2xl border border-dashboard-vehicles-border p-4">
-      <p className="m-0 text-sm font-semibold text-dashboard-chart-accent">
-        반납까지 {summary.daysUntilReturn}일 남았습니다
+    <div className="rounded-dashboard-banner border border-dashboard-vehicles-border p-4 shadow-dashboard-reservation-card">
+      <p
+        aria-hidden={remainingLabel === null}
+        className={[
+          "m-0 text-sm font-semibold",
+          remainingLabel === null
+            ? "text-transparent"
+            : isOverdue
+              ? "text-dashboard-tire-warning"
+              : "text-dashboard-chart-accent",
+        ].join(" ")}
+      >
+        {remainingLabel ?? " "}
       </p>
-      <p className="m-0 mt-2 text-sm font-medium text-dashboard-vehicles-title">
-        {summary.renterName}
+      <p className="m-0 mt-2 flex items-center gap-2 text-sm font-medium text-dashboard-account-text">
+        <User aria-hidden="true" className="h-4 w-4" />
+        {rental.renterName}
       </p>
-      <p className="m-0 mt-1 text-xs text-dashboard-vehicles-label">
-        {formatVehicleDateLabel(summary.startAt)} ~ {formatVehicleDateLabel(summary.returnAt)}
+      <p className="m-0 mt-1 flex items-center gap-2 text-xs text-dashboard-account-text">
+        <Calendar aria-hidden="true" className="h-4 w-4" />
+        {formatKstWireDateLabel(rental.startDate)} ~ {formatKstWireDateLabel(rental.endDate)}
       </p>
     </div>
   );

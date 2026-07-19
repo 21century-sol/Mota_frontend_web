@@ -1,5 +1,7 @@
 import type {
   AlertHistoryItem,
+  CurrentRental,
+  CurrentRentalResponse,
   PageInfo,
   ReservationSummaryDto,
   TireDetail,
@@ -331,6 +333,54 @@ export const reservationFixturesById: Record<string, ReservationSummaryDto | nul
   },
 } satisfies Record<string, ReservationSummaryDto | null>;
 
+/**
+ * `GET /api/dashboard/vehicles/{vehicleId}/current-rental` fixtures (issue
+ * #42/#43). All wire date strings are computed by hand against a fixed
+ * reference instant — `FIXED_NOW_KST = "2026.07.19 12:00:00"` (KST) — never via
+ * `new Date()`, so scenario boundaries stay deterministic across test runs.
+ *
+ * `vehicle-mgmt-013` is a 5th id (not present in `vehicleDetailFixturesById`)
+ * used only to exercise the overdue scenario — the "예약 내역" panel and its
+ * `useVehicleCurrentRental` query are independent of the detail fixture set
+ * (separate endpoint), so this is a valid, isolated scenario id.
+ */
+export const FIXED_NOW_KST = "2026.07.19 12:00:00";
+
+export const VEHICLE_CURRENT_RENTAL_OVERDUE_ID = "vehicle-mgmt-013";
+
+export const currentRentalFixturesById: Record<string, CurrentRental> = {
+  // not-rented.
+  "vehicle-mgmt-001": { rented: false },
+  // over-24h: endDate = FIXED_NOW_KST + exactly 4일 → "반납까지 4일 남았습니다".
+  "vehicle-mgmt-003": {
+    rented: true,
+    renterName: "김민준",
+    startDate: "2026.07.15 09:00:00",
+    endDate: "2026.07.23 12:00:00",
+  },
+  // 1-to-24h: endDate = FIXED_NOW_KST + exactly 5시간 → "반납까지 5시간 남았습니다".
+  "vehicle-mgmt-004": {
+    rented: true,
+    renterName: "이서연",
+    startDate: "2026.07.18 09:00:00",
+    endDate: "2026.07.19 17:00:00",
+  },
+  // under-1h: endDate = FIXED_NOW_KST + exactly 20분 → "반납까지 20분 남았습니다".
+  "vehicle-mgmt-007": {
+    rented: true,
+    renterName: "박지호",
+    startDate: "2026.07.19 08:00:00",
+    endDate: "2026.07.19 12:20:00",
+  },
+  // overdue: endDate = FIXED_NOW_KST - 2시간 (already in the past) → "반납 예정 시간이 지났습니다".
+  [VEHICLE_CURRENT_RENTAL_OVERDUE_ID]: {
+    rented: true,
+    renterName: "최유진",
+    startDate: "2026.07.16 09:00:00",
+    endDate: "2026.07.19 10:00:00",
+  },
+} satisfies Record<string, CurrentRental>;
+
 export const alertHistoryFixturesById: Record<string, AlertHistoryItem[]> = {
   "vehicle-mgmt-001": [
     {
@@ -512,6 +562,21 @@ export function toVehicleDetailResponse(vehicleId: string): VehicleDetailRespons
       vehicle,
       reservation: reservationFixturesById[vehicleId] ?? null,
     },
+  };
+}
+
+/**
+ * Unlike {@link toVehicleDetailResponse}, an unrecognized `vehicleId` falls
+ * back to `{ rented: false }` instead of `null` — the confirmed contract has no
+ * dedicated not-found case for this endpoint, so any vehicle without a
+ * dedicated current-rental fixture is treated as "no current rental" rather
+ * than a 404.
+ */
+export function toCurrentRentalResponse(vehicleId: string): CurrentRentalResponse {
+  return {
+    statusCode: 200,
+    error: null,
+    content: currentRentalFixturesById[vehicleId] ?? { rented: false },
   };
 }
 
