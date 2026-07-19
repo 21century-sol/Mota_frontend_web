@@ -129,17 +129,18 @@ export const vehicleDetailSlowHandler = http.get(VEHICLE_DETAIL_PATH, async ({ p
 });
 
 /**
- * success: looks up `params.vehicleId` in `currentRentalFixturesById` (issue
- * #42/#43). An unrecognized id falls back to `{ rented: false }` via
- * `toCurrentRentalResponse`, not a 404 (this endpoint's confirmed contract has
- * no dedicated not-found case).
+ * success: looks up `params.vehicleId` in `currentRentalFixturesById`
+ * (issue #42, `.claude/handoffs/42-api-specs.md` MSW Scenarios) — an
+ * unrecognized id (any id outside the fixture map) falls back to
+ * `{ rented: false }` via `toCurrentRentalResponse`, not a 404 (this
+ * endpoint's confirmed contract has no dedicated not-found case).
  */
 export const vehicleCurrentRentalNormalHandler = http.get(
   VEHICLE_CURRENT_RENTAL_PATH,
   ({ params }) => HttpResponse.json(toCurrentRentalResponse(params.vehicleId as string)),
 );
 
-/** server error: 500 (error+retry copy for the "예약 내역" panel). */
+/** server error: 500 (PM error+retry copy for the "예약 내역" panel). */
 export const vehicleCurrentRentalErrorHandler = http.get(VEHICLE_CURRENT_RENTAL_PATH, () =>
   HttpResponse.json({ message: "Internal Server Error" }, { status: 500 }),
 );

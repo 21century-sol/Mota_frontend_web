@@ -39,13 +39,15 @@ describe("VehicleDetailSection", () => {
     expect(skeleton.closest('[aria-busy="true"]')).not.toBeNull();
   });
 
-  it("renders the vehicle identity fields with an explicit placeholder for null lastInspectedAt (AC4)", async () => {
+  it("renders the vehicle identity fields, with an explicit placeholder for 0 options (issue #42)", async () => {
     server.use(vehicleDetailNormalHandler);
     renderSection("vehicle-mgmt-004");
 
     expect(await screen.findByText("78라 4321")).toBeInTheDocument();
-    // vehicle-mgmt-004 fixture: lastInspectedAt is null.
-    expect(screen.getByText("최근 점검일").closest("div")).toHaveTextContent("—");
+    // vehicle-mgmt-004 fixture: options is [].
+    expect(screen.getByText("차량 옵션").closest("div")).toHaveTextContent("—");
+    // manufacturer + " " + model, no brackets/modelCode (PM confirmed display rule).
+    expect(screen.getByText(/기아 모닝/)).toBeInTheDocument();
   });
 
   it("shows a distinct not-found state with a list link for an unknown vehicleId (AC6)", async () => {
@@ -75,7 +77,7 @@ describe("VehicleDetailSection", () => {
     expect(await screen.findByText("12가 3456")).toBeInTheDocument();
   });
 
-  it("shows an explicit empty state for a vehicle with no reservation (AC9)", async () => {
+  it("shows an explicit empty state for a vehicle with no current rental (issue #42)", async () => {
     server.use(vehicleDetailNormalHandler);
     renderSection("vehicle-mgmt-001");
 
@@ -89,7 +91,7 @@ describe("VehicleDetailSection", () => {
     expect(await screen.findByText("확인할 알림이 없습니다.")).toBeInTheDocument();
   });
 
-  it("renders the reservation summary (renter/dates) and alert history items (tire position + message) (AC8, AC10)", async () => {
+  it("renders the current-rental summary (renter/dates) and alert history items (tire position + message) (issue #42, AC10)", async () => {
     server.use(vehicleDetailNormalHandler);
     renderSection("vehicle-mgmt-003");
 

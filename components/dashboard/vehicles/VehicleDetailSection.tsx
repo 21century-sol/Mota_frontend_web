@@ -74,7 +74,7 @@ export function VehicleDetailSection({
           <VehicleDetailHeader />
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start">
-            <VehicleInfoPanel vehicle={query.data.vehicle} />
+            <VehicleInfoPanel vehicle={query.data} />
             <VehicleSidePanel vehicleId={vehicleId} />
           </div>
 
@@ -82,8 +82,8 @@ export function VehicleDetailSection({
             vehicleId={vehicleId}
             activeTab={tab}
             page={page}
-            vehiclePhotoUrl={query.data.vehicle.photoUrls[0]}
-            vehicleModel={query.data.vehicle.model}
+            vehiclePhotoUrl={query.data.imageUrls[0]}
+            vehicleModel={query.data.model}
           />
         </div>
       )}
