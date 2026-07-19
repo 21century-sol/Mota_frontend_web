@@ -17,6 +17,7 @@ const ITEM: ReservationItem = {
   rentedAt: "2026-07-19",
   returnedAt: "2026-07-21",
   status: "RETURNED",
+  reportDownloadUrl: "https://mota-app.duckdns.org/reports/res-a.pdf",
 };
 
 const PAGE_INFO: ReservationPageInfo = { page: 1, pageSize: 8, totalCount: 1, totalPages: 1 };

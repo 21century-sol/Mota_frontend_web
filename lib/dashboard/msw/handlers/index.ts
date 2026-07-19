@@ -11,6 +11,7 @@ import {
   vehicleTireTrendNormalHandler,
   vehiclesNormalHandler,
 } from "@/lib/dashboard/msw/handlers/vehicles";
+import { reservationsNormalHandler } from "@/lib/dashboard/msw/handlers/reservations";
 
 // Dev-boot default: only the "normal" scenario for each dashboard widget runs out
 // of the box. Other scenarios (empty/error/slow) are opted into per-test via
@@ -29,4 +30,6 @@ export const handlers: RequestHandler[] = [
   vehicleRentalHistoryNormalHandler,
   vehicleTireDetailNormalHandler,
   vehicleTireTrendNormalHandler,
+  // Issue #51 — `/dashboard/reservations`.
+  reservationsNormalHandler,
 ];

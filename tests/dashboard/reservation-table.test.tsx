@@ -14,6 +14,7 @@ const RETURNED_ITEM: ReservationItem = {
   rentedAt: "2026-07-19",
   returnedAt: "2026-07-21",
   status: "RETURNED",
+  reportDownloadUrl: "https://mota-app.duckdns.org/reports/res-a.pdf",
 };
 
 const RENTED_ITEM: ReservationItem = {
@@ -25,6 +26,19 @@ const RENTED_ITEM: ReservationItem = {
   rentedAt: "2026-07-15",
   returnedAt: "2026-07-25",
   status: "RENTED",
+  reportDownloadUrl: null,
+};
+
+const RETURNED_ITEM_NO_REPORT: ReservationItem = {
+  id: "res-c",
+  renterName: "이서준",
+  renterPhone: "010-3344-5566",
+  plateNumber: "56다 7788",
+  vehicleModel: "현대 아반떼",
+  rentedAt: "2026-07-10",
+  returnedAt: "2026-07-13",
+  status: "RETURNED",
+  reportDownloadUrl: null,
 };
 
 describe("ReservationTable (AC6, AC7, AC9, AC10)", () => {
@@ -50,25 +64,39 @@ describe("ReservationTable (AC6, AC7, AC9, AC10)", () => {
     expect(screen.getByText("대여 중")).toBeInTheDocument();
   });
 
-  it("renders a focusable, accessible PDF button only for a RETURNED row (AC7)", () => {
-    render(<ReservationTable items={[RETURNED_ITEM, RENTED_ITEM]} />);
+  it("renders the PDF button only when reportDownloadUrl is present, never for a report-less row (AC7, #51 follow-up)", () => {
+    render(
+      <ReservationTable items={[RETURNED_ITEM, RENTED_ITEM, RETURNED_ITEM_NO_REPORT]} />,
+    );
 
     const rows = screen.getAllByRole("row");
     // rows[0] is the header row.
-    const returnedRow = within(rows[1]);
+    const withReportRow = within(rows[1]);
     const rentedRow = within(rows[2]);
+    const returnedNoReportRow = within(rows[3]);
 
     expect(
-      returnedRow.getByRole("button", { name: "김모타 리포트 PDF 다운로드" }),
+      withReportRow.getByRole("button", { name: "김모타 리포트 PDF 다운로드" }),
     ).toBeInTheDocument();
+    // RENTED row (reportDownloadUrl null) → no button.
     expect(rentedRow.queryByRole("button")).not.toBeInTheDocument();
+    // RETURNED row without a generated report (reportDownloadUrl null) → no button.
+    expect(returnedNoReportRow.queryByRole("button")).not.toBeInTheDocument();
   });
 
-  it("PDF button click is a no-op (no thrown error, no navigation side effect)", async () => {
+  it("opens item.reportDownloadUrl in a new tab when the PDF button is clicked (issue #51 AC4)", async () => {
     const user = userEvent.setup();
+    const windowOpenSpy = vi.spyOn(window, "open").mockImplementation(() => null);
     render(<ReservationTable items={[RETURNED_ITEM]} />);
 
     const pdfButton = screen.getByRole("button", { name: "김모타 리포트 PDF 다운로드" });
-    await expect(user.click(pdfButton)).resolves.toBeUndefined();
+    await user.click(pdfButton);
+
+    expect(windowOpenSpy).toHaveBeenCalledWith(
+      RETURNED_ITEM.reportDownloadUrl,
+      "_blank",
+      "noopener,noreferrer",
+    );
+    windowOpenSpy.mockRestore();
   });
 });

@@ -10,13 +10,12 @@ const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
  * Fixed "today" anchor for the popover's "오늘 날짜" button and default
- * open-month. The screen has no real server clock (static fixture only,
- * CLAUDE.md §6 forbids `new Date()`/`Date.now()` for fixture data), so a
- * literal date is used instead. `2026-07-16` sits inside the
- * `RESERVATION_FIXTURES` range (2026-07-02–2026-07-27, see
- * `lib/dashboard/reservations/fixtures.ts`), giving both affordances a
- * representative, always-in-range anchor rather than an arbitrary date
- * outside the visible fixture data.
+ * open-month. The calendar popover itself has no real server clock (CLAUDE.md
+ * §6 forbids `new Date()`/`Date.now()` for fixture data), so a literal date is
+ * used instead. `2026-07-16` sits inside the MSW reservation fixture's date
+ * range (see `lib/dashboard/msw/fixtures/reservations.ts`), giving both
+ * affordances a representative, always-in-range anchor rather than an
+ * arbitrary date outside the visible data.
  */
 export const RESERVATION_CALENDAR_TODAY_ISO = "2026-07-16";
 
