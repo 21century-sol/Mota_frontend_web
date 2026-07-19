@@ -22,14 +22,19 @@ export function VehicleSidePanel({ vehicleId }: { vehicleId: string }) {
   const alerts = alertHistoryQuery.data ?? [];
 
   return (
-    <div className="flex flex-col gap-6 rounded-dashboard-card bg-white p-6 shadow-dashboard-card">
-      <section aria-labelledby="vehicle-reservation-heading">
-        <h2
-          id="vehicle-reservation-heading"
-          className="m-0 mb-3 text-sm font-medium text-dashboard-vehicles-label"
-        >
-          예약 현황
-        </h2>
+    <div className="flex flex-col gap-4">
+      <section
+        aria-labelledby="vehicle-reservation-heading"
+        className="rounded-dashboard-card bg-white px-5 pb-4 pt-6 shadow-dashboard-card"
+      >
+        <div className="mb-2 flex items-center justify-between">
+          <h2
+            id="vehicle-reservation-heading"
+            className="m-0 text-lg font-semibold text-dashboard-vehicles-title"
+          >
+            예약 내역
+          </h2>
+        </div>
         <div aria-busy={currentRentalQuery.isPending}>
           {currentRentalQuery.isError ? (
             <div role="alert" className="flex flex-col items-start gap-2 py-4">
@@ -62,13 +67,18 @@ export function VehicleSidePanel({ vehicleId }: { vehicleId: string }) {
         </div>
       </section>
 
-      <section aria-labelledby="vehicle-alert-history-heading">
-        <h2
-          id="vehicle-alert-history-heading"
-          className="m-0 mb-3 text-sm font-medium text-dashboard-vehicles-label"
-        >
-          알림 이력
-        </h2>
+      <section
+        aria-labelledby="vehicle-alert-history-heading"
+        className="rounded-dashboard-card bg-white px-5 pb-4 pt-6 shadow-dashboard-card"
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2
+            id="vehicle-alert-history-heading"
+            className="m-0 text-lg font-semibold text-dashboard-vehicles-title"
+          >
+            알림 이력
+          </h2>
+        </div>
         <div aria-busy={alertHistoryQuery.isPending}>
           {alertHistoryQuery.isError ? (
             <div role="alert" className="flex flex-col items-start gap-2 py-4">

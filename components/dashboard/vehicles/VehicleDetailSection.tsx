@@ -73,18 +73,18 @@ export function VehicleDetailSection({
         <div className="flex flex-col gap-6">
           <VehicleDetailHeader />
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start">
-            <VehicleInfoPanel vehicle={query.data} />
+          <VehicleInfoPanel vehicle={query.data} />
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,802fr)_minmax(0,298fr)] lg:items-start">
+            <VehicleDetailTabs
+              vehicleId={vehicleId}
+              activeTab={tab}
+              page={page}
+              vehiclePhotoUrl={query.data.imageUrls[0]}
+              vehicleModel={query.data.model}
+            />
             <VehicleSidePanel vehicleId={vehicleId} />
           </div>
-
-          <VehicleDetailTabs
-            vehicleId={vehicleId}
-            activeTab={tab}
-            page={page}
-            vehiclePhotoUrl={query.data.imageUrls[0]}
-            vehicleModel={query.data.model}
-          />
         </div>
       )}
     </div>

@@ -36,7 +36,9 @@ describe("VehicleInfoPanel", () => {
     render(<VehicleInfoPanel vehicle={baseVehicle} />);
 
     expect(screen.getByText("12가 3456")).toBeInTheDocument();
-    expect(screen.getByText("현대 그랜저 · 2024년식 · 하이브리드차")).toBeInTheDocument();
+    // Figma 배너는 차종과 연식/연료를 별도 줄로 분리한다 (issue #53).
+    expect(screen.getByText("현대 그랜저")).toBeInTheDocument();
+    expect(screen.getByText("2024년식 · 하이브리드차")).toBeInTheDocument();
     expect(screen.queryByText(/GN7/)).not.toBeInTheDocument();
   });
 
@@ -70,7 +72,7 @@ describe("VehicleInfoPanel", () => {
 
   it("formats mileage with ko-KR thousands separators and a km suffix", () => {
     render(<VehicleInfoPanel vehicle={{ ...baseVehicle, mileage: 123456 }} />);
-    expect(screen.getByText("123,456km")).toBeInTheDocument();
+    expect(screen.getByText("123,456 km")).toBeInTheDocument();
   });
 
   it("formats lastInspectedAt (YYYY-MM-DD) as YYYY.MM.DD", () => {
@@ -94,5 +96,31 @@ describe("VehicleInfoPanel", () => {
     render(<VehicleInfoPanel vehicle={{ ...baseVehicle, imageUrls: [] }} />);
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
     expect(screen.getByText("등록된 차량 사진이 없습니다.")).toBeInTheDocument();
+  });
+
+  it("renders the image counter (1/N) with a single accessible description (AC2)", () => {
+    // baseVehicle has 2 imageUrls → "전체 2장 중 1번째 사진"; the visual "1/2"
+    // digits are aria-hidden so this sr-only text is the only announced label.
+    render(<VehicleInfoPanel vehicle={baseVehicle} />);
+    expect(screen.getByText("전체 2장 중 1번째 사진")).toBeInTheDocument();
+  });
+
+  it("caps thumbnails at 3 even when more than 4 images are provided (slice(1, 4))", () => {
+    render(
+      <VehicleInfoPanel
+        vehicle={{
+          ...baseVehicle,
+          imageUrls: [
+            "https://mota-app.duckdns.org/uploads/vehicles/detail-1.jpg",
+            "https://mota-app.duckdns.org/uploads/vehicles/detail-2.jpg",
+            "https://mota-app.duckdns.org/uploads/vehicles/detail-3.jpg",
+            "https://mota-app.duckdns.org/uploads/vehicles/detail-4.jpg",
+            "https://mota-app.duckdns.org/uploads/vehicles/detail-5.jpg",
+          ],
+        }}
+      />,
+    );
+    // 1 main photo + 3 thumbnails = 4 images (the 5th image is not rendered).
+    expect(screen.getAllByRole("img")).toHaveLength(4);
   });
 });

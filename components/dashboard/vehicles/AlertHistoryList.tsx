@@ -29,7 +29,7 @@ export function AlertHistoryList({ alerts }: { alerts: AlertHistoryItem[] }) {
     <ul className="flex max-h-64 flex-col divide-y divide-dashboard-vehicles-border overflow-y-auto">
       {alerts.map((alert) => (
         <li key={alert.alertId} className="flex flex-col items-start gap-1 py-3 pl-0 pr-3">
-          <p className="m-0 truncate text-base font-medium tracking-tight text-dashboard-vehicles-title">
+          <p className="m-0 text-base font-medium tracking-tight text-dashboard-vehicles-title">
             {alert.position} {alert.alertTitle}
           </p>
           <span className="text-sm font-normal tracking-tight text-dashboard-vehicles-label">
