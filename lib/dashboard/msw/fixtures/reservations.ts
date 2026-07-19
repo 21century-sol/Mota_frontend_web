@@ -4,17 +4,20 @@ import type {
 } from "@/types/dashboard/reservation";
 
 /**
- * `GET /api/dashboard/rentals` fixtures (issue #51, confirmed real backend
+ * `GET /api/dashboard/rentals` fixtures (issue #51, matching the *live* backend
  * contract, replacing the #16 local-fixture-only `RESERVATION_FIXTURES` set
  * entirely). Renter names/phones/plates are synthetic Korean rental-car data
- * (CLAUDE.md §6). All dates are static ISO 8601 date-time literals — never
- * `new Date()`.
+ * (CLAUDE.md §6). `startDate`/`endDate` are date-only `YYYY-MM-DD` literals (the
+ * canonical wire format; the adapter also tolerates the dot-separated variant
+ * the live backend currently emits) — always static, never `new Date()`.
+ * `reportDownloadUrl` is `null` for rows without a report (all `IN_PROGRESS`
+ * here), mirroring the live backend.
  *
- * 8 `IN_PROGRESS` / 6 `RETURNED` rows (14 total) so both the unfiltered list
- * (14 → 2 pages of 8) and the "대여 중" tab alone (8 → exactly 1 full page,
- * boundary case) exercise pagination. `rental-res-006`/`rental-res-010` share
- * the same `startDate` day (2026-06-10) so the `rentedOn` exact-day filter
- * has more than one match to verify against.
+ * 7 `IN_PROGRESS` / 7 `RETURNED` rows (14 total) so both the unfiltered list
+ * (14 → 2 pages of 8) and the single-status tabs (7 rows → 1 page each) exercise
+ * pagination. `rental-res-006`/`rental-res-010` share the same `startDate` day
+ * (2026-06-10) so the `rentedOn` exact-day filter has more than one match to
+ * verify against.
  */
 export const reservationsNormalFixture: RentalStatusResponse[] = [
   {
@@ -24,8 +27,8 @@ export const reservationsNormalFixture: RentalStatusResponse[] = [
     manufacturer: "현대",
     model: "그랜저 GN7",
     plateNumber: "12가 4412",
-    startDate: "2026-07-19T00:00:00.000Z",
-    endDate: "2026-07-21T00:00:00.000Z",
+    startDate: "2026-07-19",
+    endDate: "2026-07-21",
     status: "RETURNED",
     reportDownloadUrl: "https://mota-app.duckdns.org/reports/rental-res-001.pdf",
   },
@@ -36,10 +39,10 @@ export const reservationsNormalFixture: RentalStatusResponse[] = [
     manufacturer: "기아",
     model: "쏘렌토",
     plateNumber: "34나 5566",
-    startDate: "2026-07-15T00:00:00.000Z",
-    endDate: "2026-07-25T00:00:00.000Z",
+    startDate: "2026-07-15",
+    endDate: "2026-07-25",
     status: "IN_PROGRESS",
-    reportDownloadUrl: "",
+    reportDownloadUrl: null,
   },
   {
     rentalId: "rental-res-003",
@@ -48,8 +51,8 @@ export const reservationsNormalFixture: RentalStatusResponse[] = [
     manufacturer: "현대",
     model: "아반떼 하이브리드",
     plateNumber: "56다 7788",
-    startDate: "2026-07-10T00:00:00.000Z",
-    endDate: "2026-07-13T00:00:00.000Z",
+    startDate: "2026-07-10",
+    endDate: "2026-07-13",
     status: "RETURNED",
     reportDownloadUrl: "https://mota-app.duckdns.org/reports/rental-res-003.pdf",
   },
@@ -60,8 +63,8 @@ export const reservationsNormalFixture: RentalStatusResponse[] = [
     manufacturer: "기아",
     model: "K5",
     plateNumber: "78라 9900",
-    startDate: "2026-07-11T00:00:00.000Z",
-    endDate: "2026-07-14T00:00:00.000Z",
+    startDate: "2026-07-11",
+    endDate: "2026-07-14",
     status: "RETURNED",
     reportDownloadUrl: "https://mota-app.duckdns.org/reports/rental-res-004.pdf",
   },
@@ -72,10 +75,10 @@ export const reservationsNormalFixture: RentalStatusResponse[] = [
     manufacturer: "현대",
     model: "팰리세이드",
     plateNumber: "90마 1122",
-    startDate: "2026-07-16T00:00:00.000Z",
-    endDate: "2026-07-24T00:00:00.000Z",
+    startDate: "2026-07-16",
+    endDate: "2026-07-24",
     status: "IN_PROGRESS",
-    reportDownloadUrl: "",
+    reportDownloadUrl: null,
   },
   {
     rentalId: "rental-res-006",
@@ -84,8 +87,8 @@ export const reservationsNormalFixture: RentalStatusResponse[] = [
     manufacturer: "기아",
     model: "카니발",
     plateNumber: "11바 3344",
-    startDate: "2026-06-10T00:00:00.000Z",
-    endDate: "2026-07-12T00:00:00.000Z",
+    startDate: "2026-06-10",
+    endDate: "2026-07-12",
     status: "RETURNED",
     reportDownloadUrl: "https://mota-app.duckdns.org/reports/rental-res-006.pdf",
   },
@@ -96,10 +99,10 @@ export const reservationsNormalFixture: RentalStatusResponse[] = [
     manufacturer: "현대",
     model: "투싼",
     plateNumber: "23사 5566",
-    startDate: "2026-07-17T00:00:00.000Z",
-    endDate: "2026-07-26T00:00:00.000Z",
+    startDate: "2026-07-17",
+    endDate: "2026-07-26",
     status: "IN_PROGRESS",
-    reportDownloadUrl: "",
+    reportDownloadUrl: null,
   },
   {
     rentalId: "rental-res-008",
@@ -108,8 +111,8 @@ export const reservationsNormalFixture: RentalStatusResponse[] = [
     manufacturer: "기아",
     model: "스포티지",
     plateNumber: "45아 7788",
-    startDate: "2026-07-05T00:00:00.000Z",
-    endDate: "2026-07-09T00:00:00.000Z",
+    startDate: "2026-07-05",
+    endDate: "2026-07-09",
     status: "RETURNED",
     reportDownloadUrl: "https://mota-app.duckdns.org/reports/rental-res-008.pdf",
   },
@@ -120,10 +123,10 @@ export const reservationsNormalFixture: RentalStatusResponse[] = [
     manufacturer: "현대",
     model: "싼타페",
     plateNumber: "67자 9900",
-    startDate: "2026-07-14T00:00:00.000Z",
-    endDate: "2026-07-22T00:00:00.000Z",
+    startDate: "2026-07-14",
+    endDate: "2026-07-22",
     status: "IN_PROGRESS",
-    reportDownloadUrl: "",
+    reportDownloadUrl: null,
   },
   {
     rentalId: "rental-res-010",
@@ -132,8 +135,8 @@ export const reservationsNormalFixture: RentalStatusResponse[] = [
     manufacturer: "기아",
     model: "셀토스",
     plateNumber: "89차 1122",
-    startDate: "2026-06-10T00:00:00.000Z",
-    endDate: "2026-07-10T00:00:00.000Z",
+    startDate: "2026-06-10",
+    endDate: "2026-07-10",
     status: "RETURNED",
     reportDownloadUrl: "https://mota-app.duckdns.org/reports/rental-res-010.pdf",
   },
@@ -144,10 +147,10 @@ export const reservationsNormalFixture: RentalStatusResponse[] = [
     manufacturer: "현대",
     model: "아이오닉6",
     plateNumber: "10카 3344",
-    startDate: "2026-07-18T00:00:00.000Z",
-    endDate: "2026-07-27T00:00:00.000Z",
+    startDate: "2026-07-18",
+    endDate: "2026-07-27",
     status: "IN_PROGRESS",
-    reportDownloadUrl: "",
+    reportDownloadUrl: null,
   },
   {
     rentalId: "rental-res-012",
@@ -156,8 +159,8 @@ export const reservationsNormalFixture: RentalStatusResponse[] = [
     manufacturer: "기아",
     model: "EV6",
     plateNumber: "21타 5566",
-    startDate: "2026-07-02T00:00:00.000Z",
-    endDate: "2026-07-06T00:00:00.000Z",
+    startDate: "2026-07-02",
+    endDate: "2026-07-06",
     status: "RETURNED",
     reportDownloadUrl: "https://mota-app.duckdns.org/reports/rental-res-012.pdf",
   },
@@ -168,10 +171,10 @@ export const reservationsNormalFixture: RentalStatusResponse[] = [
     manufacturer: "현대",
     model: "넥쏘",
     plateNumber: "32파 7788",
-    startDate: "2026-07-13T00:00:00.000Z",
-    endDate: "2026-07-23T00:00:00.000Z",
+    startDate: "2026-07-13",
+    endDate: "2026-07-23",
     status: "IN_PROGRESS",
-    reportDownloadUrl: "",
+    reportDownloadUrl: null,
   },
   {
     rentalId: "rental-res-014",
@@ -180,10 +183,10 @@ export const reservationsNormalFixture: RentalStatusResponse[] = [
     manufacturer: "기아",
     model: "레이",
     plateNumber: "43하 9900",
-    startDate: "2026-07-12T00:00:00.000Z",
-    endDate: "2026-07-20T00:00:00.000Z",
+    startDate: "2026-07-12",
+    endDate: "2026-07-20",
     status: "IN_PROGRESS",
-    reportDownloadUrl: "",
+    reportDownloadUrl: null,
   },
 ] satisfies RentalStatusResponse[];
 
@@ -199,6 +202,11 @@ export const reservationsEmptyFixture: RentalStatusResponse[] = [] satisfies Ren
  * (single-day filter), but the range comparison here is written generally so
  * this fixture helper stays a faithful backend emulation rather than an
  * equality-only shortcut.
+ *
+ * Item dates are normalized to dashes (`YYYY-MM-DD`) before the lexicographic
+ * range compare so the helper stays correct whether the fixture uses the dashed
+ * or the dot-separated variant; the query params are always dashed (the
+ * OpenAPI `date` format the UI sends).
  */
 export function filterReservationApiFixture(
   items: RentalStatusResponse[],
@@ -213,11 +221,11 @@ export function filterReservationApiFixture(
   return items.filter((item) => {
     if (filters.status && item.status !== filters.status) return false;
 
-    const rentedDate = item.startDate.slice(0, 10);
+    const rentedDate = item.startDate.replace(/\./g, "-");
     if (filters.rentedFrom && rentedDate < filters.rentedFrom) return false;
     if (filters.rentedTo && rentedDate > filters.rentedTo) return false;
 
-    const returnedDate = item.endDate.slice(0, 10);
+    const returnedDate = item.endDate.replace(/\./g, "-");
     if (filters.returnedFrom && returnedDate < filters.returnedFrom) return false;
     if (filters.returnedTo && returnedDate > filters.returnedTo) return false;
 

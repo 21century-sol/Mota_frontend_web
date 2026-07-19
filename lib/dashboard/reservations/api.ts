@@ -4,7 +4,7 @@ import type {
   ReservationListFilters,
   ReservationPageInfo,
 } from "@/types/dashboard/reservation";
-import { isFiniteNumber, isIsoDateString, isNonEmptyString } from "@/lib/dashboard/vehicles/api";
+import { isFiniteNumber, isNonEmptyString } from "@/lib/dashboard/vehicles/api";
 import { dashboardClientEnv } from "@/lib/dashboard/env/client";
 
 /**
@@ -70,13 +70,27 @@ function isReservationApiStatus(value: unknown): value is ReservationApiStatus {
 }
 
 /**
+ * Matches a date-only `startDate`/`endDate` wire value in the canonical
+ * `YYYY-MM-DD` format, tolerating the dot-separated `YYYY.MM.DD` variant the
+ * live backend currently emits (both differ from the OpenAPI schema's declared
+ * `date-time`). The regex pins the exact shape (so a stray ISO date-time is
+ * rejected as a contract mismatch), and the `Date.parse` guard on the
+ * normalized (dashed) form rejects impossible calendar dates like `2026-13-40`.
+ */
+function isWireDateString(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    /^\d{4}[.-]\d{2}[.-]\d{2}$/.test(value) &&
+    !Number.isNaN(Date.parse(normalizeWireDateToIsoDate(value)))
+  );
+}
+
+/**
  * Validates every confirmed `RentalStatusResponse` field. `startDate`/
- * `endDate` are standard ISO 8601 date-times here — unlike
- * `RentalHistoryItem`'s custom KST wire format (issue #49) — so validation
- * reuses the shared `isIsoDateString` (`lib/dashboard/vehicles/api.ts`)
- * instead of a KST-pattern regex. `reportDownloadUrl` has no documented
- * `null` case in this endpoint's contract (unlike `RentalHistoryItem`'s), so
- * only a plain string (including `""`) is accepted.
+ * `endDate` are date-only wire values (`YYYY-MM-DD`, dot-variant tolerated —
+ * see {@link isWireDateString}), not the OpenAPI `date-time`.
+ * `reportDownloadUrl` is `null` when no report exists (live backend), so both
+ * `null` and a plain string (including `""`) are accepted.
  */
 function isRentalStatusResponse(value: unknown): value is RentalStatusResponse {
   if (typeof value !== "object" || value === null) return false;
@@ -88,16 +102,25 @@ function isRentalStatusResponse(value: unknown): value is RentalStatusResponse {
     isNonEmptyString(candidate.manufacturer) &&
     isNonEmptyString(candidate.model) &&
     isNonEmptyString(candidate.plateNumber) &&
-    isIsoDateString(candidate.startDate) &&
-    isIsoDateString(candidate.endDate) &&
+    isWireDateString(candidate.startDate) &&
+    isWireDateString(candidate.endDate) &&
     isReservationApiStatus(candidate.status) &&
-    typeof candidate.reportDownloadUrl === "string"
+    (candidate.reportDownloadUrl === null ||
+      typeof candidate.reportDownloadUrl === "string")
   );
 }
 
-/** `startDate`/`endDate` (ISO date-time) truncated to `YYYY-MM-DD`, UTC-based so the result never shifts by a day depending on the caller's timezone — same convention as `formatReservationDateLabel` (`lib/dashboard/reservations/format.ts`). */
-function truncateIsoDateTimeToDate(isoDateTime: string): string {
-  return new Date(isoDateTime).toISOString().slice(0, 10);
+/**
+ * Normalizes a date-only wire value to the canonical `YYYY-MM-DD` (dashed)
+ * form by literal separator replacement only — a `YYYY-MM-DD` input is
+ * returned unchanged, a dot-separated `YYYY.MM.DD` is converted. Deliberately
+ * avoids `new Date(...)`: a dotted date parses as local midnight, so a UTC
+ * round-trip would shift the day backwards in `UTC+` zones (e.g. KST).
+ * `formatReservationDateLabel` then reads the dashed value via UTC getters and
+ * renders it identically regardless of timezone.
+ */
+function normalizeWireDateToIsoDate(wire: string): string {
+  return wire.replace(/\./g, "-");
 }
 
 /**
@@ -112,8 +135,8 @@ function toReservationItem(entry: RentalStatusResponse): ReservationItem {
     renterPhone: entry.contact,
     plateNumber: entry.plateNumber,
     vehicleModel: `${entry.manufacturer} ${entry.model}`,
-    rentedAt: truncateIsoDateTimeToDate(entry.startDate),
-    returnedAt: truncateIsoDateTimeToDate(entry.endDate),
+    rentedAt: normalizeWireDateToIsoDate(entry.startDate),
+    returnedAt: normalizeWireDateToIsoDate(entry.endDate),
     status: entry.status === "IN_PROGRESS" ? "RENTED" : "RETURNED",
     reportDownloadUrl: entry.reportDownloadUrl,
   };

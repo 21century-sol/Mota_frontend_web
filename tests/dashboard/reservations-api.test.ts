@@ -17,8 +17,8 @@ const baseItem = {
   manufacturer: "현대",
   model: "아반떼 하이브리드",
   plateNumber: "12가 3456",
-  startDate: "2026-06-01T09:00:00.000Z",
-  endDate: "2026-06-03T11:00:00.000Z",
+  startDate: "2026-06-01",
+  endDate: "2026-06-03",
   status: "RETURNED",
   reportDownloadUrl: "https://mota-app.duckdns.org/reports/rental-res-001.pdf",
 };
@@ -87,12 +87,18 @@ describe("toReservationListResult", () => {
     expect(result.items[0].vehicleModel).toBe("기아 쏘렌토");
   });
 
-  it("truncates startDate/endDate to YYYY-MM-DD using UTC (not local time)", () => {
-    const item = {
-      ...baseItem,
-      startDate: "2026-12-31T23:30:00.000Z",
-      endDate: "2027-01-01T00:30:00.000Z",
-    };
+  it("keeps a dashed YYYY-MM-DD startDate/endDate as-is (canonical wire format)", () => {
+    const item = { ...baseItem, startDate: "2026-12-31", endDate: "2027-01-01" };
+    const result = toReservationListResult(envelope([item]));
+    expect(result.items[0].rentedAt).toBe("2026-12-31");
+    expect(result.items[0].returnedAt).toBe("2027-01-01");
+  });
+
+  it("tolerates the dot-separated YYYY.MM.DD variant, normalizing to YYYY-MM-DD without a timezone day-shift", () => {
+    // The live backend currently emits dots. Parsing "2026.12.31" through
+    // `new Date()` would yield local midnight and shift a day in UTC+ zones —
+    // the adapter must do a literal separator swap instead.
+    const item = { ...baseItem, startDate: "2026.12.31", endDate: "2027.01.01" };
     const result = toReservationListResult(envelope([item]));
     expect(result.items[0].rentedAt).toBe("2026-12-31");
     expect(result.items[0].returnedAt).toBe("2027-01-01");
@@ -101,6 +107,18 @@ describe("toReservationListResult", () => {
   it("allows an empty-string reportDownloadUrl", () => {
     const item = { ...baseItem, reportDownloadUrl: "" };
     expect(toReservationListResult(envelope([item])).items[0].reportDownloadUrl).toBe("");
+  });
+
+  it("allows a null reportDownloadUrl (live backend returns null when no report exists)", () => {
+    const item = { ...baseItem, reportDownloadUrl: null };
+    expect(toReservationListResult(envelope([item])).items[0].reportDownloadUrl).toBeNull();
+  });
+
+  it("treats an OpenAPI-style ISO date-time startDate as a contract mismatch (live wire format is YYYY.MM.DD)", () => {
+    const item = { ...baseItem, startDate: "2026-06-01T09:00:00.000Z" };
+    expect(() => toReservationListResult(envelope([item]))).toThrow(
+      ReservationListContractMismatchError,
+    );
   });
 
   it("treats a business-failure envelope (statusCode!==200) as a ReservationListFetchError, not a contract mismatch", () => {

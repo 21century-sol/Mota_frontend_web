@@ -32,9 +32,12 @@ export function isReservationStatus(
  * into two differently-named fields.
  *
  * `reportDownloadUrl` (issue #51, additive) is sourced 1:1 from
- * `RentalStatusResponse.reportDownloadUrl` — `ReservationTable`'s "PDF"
- * button (rendered for `RETURNED` rows only, existing markup unchanged) opens
- * it. Always a string per the confirmed contract (no `null` case).
+ * `RentalStatusResponse.reportDownloadUrl`. The live backend returns `null`
+ * when no report exists (e.g. all `IN_PROGRESS` rows, and `RETURNED` rows
+ * whose report has not been generated yet) — differing from the OpenAPI spec,
+ * which typed it as a plain string. `ReservationTable`'s "PDF" button
+ * (rendered for `RETURNED` rows only, existing markup unchanged) opens it and
+ * no-ops when it is `null`/empty.
  */
 export interface ReservationItem {
   id: string;
@@ -42,12 +45,12 @@ export interface ReservationItem {
   renterPhone: string;
   plateNumber: string;
   vehicleModel: string;
-  /** ISO date (no time component). Rendered as `YY.MM.DD` per the confirmed Figma copy. */
+  /** ISO date `YYYY-MM-DD` (no time component). Rendered as `YY.MM.DD` per the confirmed Figma copy. */
   rentedAt: string;
-  /** ISO date (no time component). See {@link ReservationItem} doc for RENTED vs RETURNED meaning. */
+  /** ISO date `YYYY-MM-DD` (no time component). See {@link ReservationItem} doc for RENTED vs RETURNED meaning. */
   returnedAt: string;
   status: ReservationStatus;
-  reportDownloadUrl: string;
+  reportDownloadUrl: string | null;
 }
 
 /**
@@ -98,12 +101,21 @@ export interface RentalStatusResponse {
   manufacturer: string;
   model: string;
   plateNumber: string;
-  /** ISO 8601 date-time — standard, unlike the `RentalHistoryItem` KST wire format (issue #49). */
+  /**
+   * Date-only wire value in `YYYY-MM-DD` format (the adapter also tolerates the
+   * dot-separated `YYYY.MM.DD` variant the live backend currently emits) —
+   * this differs from the OpenAPI schema, which declares it a `date-time`. The
+   * adapter (`lib/dashboard/reservations/api.ts`) normalizes it to a dashed
+   * `YYYY-MM-DD` `ReservationItem.rentedAt` without ever passing it through
+   * `new Date()` (a dotted date parses as local time and would shift a day in
+   * non-UTC zones).
+   */
   startDate: string;
-  /** ISO 8601 date-time. */
+  /** Date-only wire value `YYYY-MM-DD` (dot-variant tolerated). See {@link RentalStatusResponse.startDate}. */
   endDate: string;
   status: "RESERVED" | "IN_PROGRESS" | "RETURNED";
-  reportDownloadUrl: string;
+  /** Report URL, or `null` when no report exists (live backend differs from the OpenAPI `string` type). */
+  reportDownloadUrl: string | null;
 }
 
 /**
