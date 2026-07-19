@@ -253,3 +253,42 @@ export function formatKstWireDateTimeLabel(wireValue: string): string {
   const hh = displayHour.toString().padStart(2, "0");
   return `${year}.${month}.${day} ${period} ${hh}:${minuteStr}`;
 }
+
+// ---------------------------------------------------------------------------
+// Issue #49 — "이용 이력" panel formatters (additive). `rentalMinutes`/
+// `distanceKm`/`alertCount` display rules are PM-confirmed (`.claude/handoffs/49-pm.md`
+// "표시 규칙") and intentionally do not round or localize the raw numbers —
+// unlike e.g. `formatExpectedReplacementLabel`'s `toLocaleString`, a 0 or a
+// >24h duration must render literally ("0시간 0분", "81시간 0분") rather than
+// being clamped or reformatted.
+// ---------------------------------------------------------------------------
+
+/**
+ * `rentalMinutes` (int, minutes) → `"{h}시간 {m}분"`. `h = Math.floor(min/60)`,
+ * `m = min % 60` — no rounding, no day/hour clamping, so a 0-minute rental
+ * reads "0시간 0분" and a >24h rental (e.g. 4860 → 81시간 0분) still reads as
+ * hours, never days (PM display rule, issue #49 AC5).
+ */
+export function formatRentalDurationLabel(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const remainderMinutes = minutes % 60;
+  return `${hours}시간 ${remainderMinutes}분`;
+}
+
+/**
+ * `distanceKm` (double) → `"{km}km"`, the raw decimal value unchanged (no
+ * rounding/formatting) — e.g. 312.5 → "312.5km" (PM display rule, issue #49
+ * AC6).
+ */
+export function formatDistanceKmLabel(km: number): string {
+  return `${km}km`;
+}
+
+/**
+ * `alertCount` (`number | null`) → `""` for `null`/`0`, `"{n}건"` otherwise
+ * (PM display rule, issue #49 AC7) — a 0-alert row renders an empty cell
+ * rather than the literal "0건".
+ */
+export function formatAlertCountLabel(count: number | null): string {
+  return count === null || count === 0 ? "" : `${count}건`;
+}

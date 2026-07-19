@@ -13,7 +13,10 @@ import {
 } from "@/types/dashboard/vehicle";
 import { VEHICLES_ENDPOINT_PATH } from "@/lib/dashboard/vehicles/api";
 import { VEHICLE_DETAIL_ENDPOINT_PATH } from "@/lib/dashboard/vehicles/detail-api";
-import { VEHICLE_USAGE_HISTORY_PAGE_SIZE } from "@/lib/dashboard/vehicles/usage-history-api";
+import {
+  VEHICLE_RENTAL_HISTORY_ENDPOINT_PATH_SUFFIX,
+  VEHICLE_RENTAL_HISTORY_PAGE_SIZE,
+} from "@/lib/dashboard/vehicles/usage-history-api";
 import { VEHICLE_CURRENT_RENTAL_ENDPOINT_PATH_SUFFIX } from "@/lib/dashboard/vehicles/current-rental-api";
 import {
   filterVehicleFixture,
@@ -21,9 +24,9 @@ import {
   toVehicleAlertHistoryResponse,
   toVehicleDetailResponse,
   toVehicleManagementListResponse,
+  toVehicleRentalHistoryResponse,
   toVehicleTireDetailResponse,
   toVehicleTireTrendResponse,
-  toVehicleUsageHistoryResponse,
   vehiclesEmptyFixture,
   vehiclesNormalFixture,
 } from "@/lib/dashboard/msw/fixtures/vehicles";
@@ -93,7 +96,7 @@ export const vehiclesSlowHandler = http.get(VEHICLES_ENDPOINT_PATH, async () => 
 const VEHICLE_DETAIL_PATH = `${VEHICLE_DETAIL_ENDPOINT_PATH}/:vehicleId`;
 const VEHICLE_CURRENT_RENTAL_PATH = `${VEHICLE_DETAIL_ENDPOINT_PATH}/:vehicleId${VEHICLE_CURRENT_RENTAL_ENDPOINT_PATH_SUFFIX}`;
 const VEHICLE_ALERT_HISTORY_PATH = `${VEHICLE_DETAIL_ENDPOINT_PATH}/:vehicleId/alerts`;
-const VEHICLE_USAGE_HISTORY_PATH = `${VEHICLE_DETAIL_ENDPOINT_PATH}/:vehicleId/usage-history`;
+const VEHICLE_RENTAL_HISTORY_PATH = `${VEHICLE_DETAIL_ENDPOINT_PATH}/:vehicleId${VEHICLE_RENTAL_HISTORY_ENDPOINT_PATH_SUFFIX}`;
 const VEHICLE_TIRE_DETAIL_PATH = `${VEHICLE_DETAIL_ENDPOINT_PATH}/:vehicleId/tires`;
 const VEHICLE_TIRE_TREND_PATH = `${VEHICLE_DETAIL_ENDPOINT_PATH}/:vehicleId/tires/trend`;
 
@@ -179,23 +182,50 @@ export const vehicleAlertHistorySlowHandler = http.get(
   },
 );
 
-export const vehicleUsageHistoryNormalHandler = http.get(
-  VEHICLE_USAGE_HISTORY_PATH,
+/**
+ * success: reads the request's `page` (0-based, default 0)/`size` (default
+ * `VEHICLE_RENTAL_HISTORY_PAGE_SIZE`) query params and actually slices the
+ * fixture accordingly (issue #49, `.claude/handoffs/49-api-specs.md` MSW
+ * Scenarios — no fixed/canned response, so pagination is genuinely
+ * verifiable page-to-page).
+ */
+export const vehicleRentalHistoryNormalHandler = http.get(
+  VEHICLE_RENTAL_HISTORY_PATH,
   ({ request, params }) => {
     const { searchParams } = new URL(request.url);
-    const page = Number.parseInt(searchParams.get("page") ?? "1", 10) || 1;
+    const page = Number.parseInt(searchParams.get("page") ?? "0", 10);
+    const size = Number.parseInt(searchParams.get("size") ?? "", 10);
     return HttpResponse.json(
-      toVehicleUsageHistoryResponse(
+      toVehicleRentalHistoryResponse(
         params.vehicleId as string,
-        page,
-        VEHICLE_USAGE_HISTORY_PAGE_SIZE,
+        Number.isInteger(page) && page >= 0 ? page : 0,
+        Number.isInteger(size) && size > 0 ? size : VEHICLE_RENTAL_HISTORY_PAGE_SIZE,
       ),
     );
   },
 );
 
-export const vehicleUsageHistoryErrorHandler = http.get(VEHICLE_USAGE_HISTORY_PATH, () =>
+/** server error: 500 (PM error+retry copy for the "이용 이력" tab). */
+export const vehicleRentalHistoryErrorHandler = http.get(VEHICLE_RENTAL_HISTORY_PATH, () =>
   HttpResponse.json({ message: "Internal Server Error" }, { status: 500 }),
+);
+
+/** Loading-state coverage, same `delay()` pattern as `vehicleAlertHistorySlowHandler`. */
+export const vehicleRentalHistorySlowHandler = http.get(
+  VEHICLE_RENTAL_HISTORY_PATH,
+  async ({ request, params }) => {
+    await delay(2000);
+    const { searchParams } = new URL(request.url);
+    const page = Number.parseInt(searchParams.get("page") ?? "0", 10);
+    const size = Number.parseInt(searchParams.get("size") ?? "", 10);
+    return HttpResponse.json(
+      toVehicleRentalHistoryResponse(
+        params.vehicleId as string,
+        Number.isInteger(page) && page >= 0 ? page : 0,
+        Number.isInteger(size) && size > 0 ? size : VEHICLE_RENTAL_HISTORY_PAGE_SIZE,
+      ),
+    );
+  },
 );
 
 export const vehicleTireDetailNormalHandler = http.get(

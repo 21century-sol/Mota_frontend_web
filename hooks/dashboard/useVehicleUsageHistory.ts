@@ -3,26 +3,30 @@
 import { useQuery } from "@tanstack/react-query";
 
 import {
-  fetchVehicleUsageHistory,
-  VehicleUsageHistoryFetchError,
+  fetchVehicleRentalHistory,
+  VehicleRentalHistoryFetchError,
 } from "@/lib/dashboard/vehicles/usage-history-api";
 import { vehiclesQueryKeys } from "@/lib/dashboard/vehicles/queryKeys";
 
 /**
- * Domain hook for the "이용 이력" tab (issue #15, PM AC19/AC20). `useQuery`
- * keyed per page (not `useInfiniteQuery`) — AC19 requires a numeric
- * pagination contract (`?tab=usage&page=N`), not infinite scroll.
+ * Domain hook for the "이용 이력" tab (issue #49, confirmed
+ * `GET /api/dashboard/vehicles/{vehicleId}/rentals` contract). `useQuery`
+ * keyed per page (not `useInfiniteQuery`) — the URL contract requires a
+ * numeric pagination scheme (`?tab=usage&page=N`), not infinite scroll.
+ * `page` is 1-based throughout (query key, URL); the 0-based conversion for
+ * the actual request happens inside `fetchVehicleRentalHistory`'s URL
+ * builder only (PM A1).
  */
 export function useVehicleUsageHistory(vehicleId: string, page: number) {
   return useQuery({
     queryKey: vehiclesQueryKeys.usageHistory(vehicleId, page),
-    queryFn: ({ signal }) => fetchVehicleUsageHistory(vehicleId, page, signal),
+    queryFn: ({ signal }) => fetchVehicleRentalHistory(vehicleId, page, signal),
     staleTime: 60_000,
     gcTime: 5 * 60_000,
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
     retry: (failureCount, error) => {
-      if (error instanceof VehicleUsageHistoryFetchError && error.kind === "client-error") {
+      if (error instanceof VehicleRentalHistoryFetchError && error.kind === "client-error") {
         return false;
       }
       return failureCount < 1;

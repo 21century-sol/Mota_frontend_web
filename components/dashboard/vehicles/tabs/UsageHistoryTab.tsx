@@ -1,14 +1,24 @@
 "use client";
 
-import { FileText } from "lucide-react";
+import { Link as LinkIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-import { VehicleUsageHistoryFetchError } from "@/lib/dashboard/vehicles/usage-history-api";
-import { formatVehicleDateLabel } from "@/lib/dashboard/vehicles/format";
+import { VehicleRentalHistoryFetchError } from "@/lib/dashboard/vehicles/usage-history-api";
+import {
+  formatAlertCountLabel,
+  formatDistanceKmLabel,
+  formatRentalDurationLabel,
+} from "@/lib/dashboard/vehicles/format";
 import { buildVehicleDetailHref } from "@/lib/dashboard/vehicles/tab-url";
 import { useVehicleUsageHistory } from "@/hooks/dashboard/useVehicleUsageHistory";
 
-/** Numeric pagination (1, 2, 3…) — PM AC19 explicitly requires page numbers, not prev/next arrows. */
+/**
+ * Numeric pagination (1, 2, 3…) — same "square button, active
+ * `bg-dashboard-chart-accent`, inactive `border-dashboard-reservation-page-border`"
+ * pattern as `components/dashboard/reservations/ReservationPagination.tsx`
+ * (issue #49, Figma-confirmed alignment; that component itself is not
+ * imported/modified — reservations is a separate protected feature).
+ */
 function UsagePagination({
   vehicleId,
   currentPage,
@@ -22,7 +32,7 @@ function UsagePagination({
   if (totalPages <= 1) return null;
 
   return (
-    <nav aria-label="이용 이력 페이지" className="flex justify-center gap-1 pt-4">
+    <nav aria-label="이용 이력 페이지" className="flex gap-1.5">
       {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => {
         const isCurrent = pageNumber === currentPage;
         return (
@@ -32,10 +42,11 @@ function UsagePagination({
             aria-current={isCurrent ? "page" : undefined}
             onClick={() => router.replace(buildVehicleDetailHref(vehicleId, "usage", pageNumber))}
             className={[
-              "h-8 w-8 rounded-full text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-dashboard-sidebar",
+              "h-[30px] w-[30px] rounded-lg text-xs font-medium outline-none transition-colors",
+              "focus-visible:ring-2 focus-visible:ring-dashboard-sidebar",
               isCurrent
                 ? "bg-dashboard-chart-accent text-white"
-                : "text-dashboard-vehicles-label hover:bg-dashboard-vehicles-surface",
+                : "border border-dashboard-reservation-page-border bg-white text-black hover:bg-dashboard-vehicles-surface",
             ].join(" ")}
           >
             {pageNumber}
@@ -47,13 +58,18 @@ function UsagePagination({
 }
 
 /**
- * "이용 이력" tab (issue #15, Figma root `1:14480`, PM AC19/AC20). 8 rows/page
+ * "이용 이력" tab (issue #49, Figma root `1:14635`, confirmed
+ * `GET /api/dashboard/vehicles/{vehicleId}/rentals` contract). 8 rows/page
  * server-paginated via `useVehicleUsageHistory(vehicleId, page)` — `page`
- * comes from the Server Component page's `searchParams` as a prop, and
- * pagination clicks write `?tab=usage&page=N` via `router.replace`.
+ * comes from the Server Component page's `searchParams` as a prop (1-based),
+ * and pagination clicks write `?tab=usage&page=N` via `router.replace`.
  *
- * The "리포트" button is UI-only (PM Non-goal: no real download) — `onClick`
- * intentionally does nothing beyond existing, per the issue's explicit scope.
+ * Columns: 이용자(이름+연락처, 2줄) / 대여시간 / 운행거리 / 알림건수 / 리포트.
+ * `status`/`startDate`/`endDate` are part of the validated DTO but are never
+ * rendered (PM Scope). The "리포트" link only renders when
+ * `reportDownloadUrl` is non-null, and is a real `<a target="_blank"
+ * rel="noopener noreferrer">` (not a no-op button) — issue #49 replaces the
+ * #15 provisional always-rendered, UI-only report button.
  */
 export function UsageHistoryTab({ vehicleId, page }: { vehicleId: string; page: number }) {
   const query = useVehicleUsageHistory(vehicleId, page);
@@ -63,7 +79,7 @@ export function UsageHistoryTab({ vehicleId, page }: { vehicleId: string; page: 
       {query.isError ? (
         <div role="alert" className="flex flex-col items-center gap-3 py-10 text-center">
           <p className="m-0 text-sm font-medium text-dashboard-vehicles-title">
-            {query.error instanceof VehicleUsageHistoryFetchError
+            {query.error instanceof VehicleRentalHistoryFetchError
               ? query.error.userMessage
               : "이용 이력을 불러오지 못했습니다."}
           </p>
@@ -87,15 +103,15 @@ export function UsageHistoryTab({ vehicleId, page }: { vehicleId: string; page: 
         </p>
       ) : (
         <>
-          {/* Issue #15 AC22: the table's minimum content width (renter name+phone,
-              a full date range, mileage, alert count, report button) exceeds a
+          {/* Issue #49: the table's minimum content width (renter name+contact,
+              duration, distance, alert count, report link) exceeds a
               sub-768px viewport, so it scrolls inside this container instead of
               forcing the page itself to scroll horizontally. */}
           <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] border-collapse text-left">
             <caption className="sr-only">{vehicleId} 차량 이용 이력</caption>
             <thead>
-              <tr className="bg-dashboard-vehicles-surface text-xs font-medium text-dashboard-vehicles-label">
+              <tr className="bg-dashboard-vehicles-surface text-base font-normal text-dashboard-vehicles-label">
                 <th scope="col" className="px-3 py-2">
                   이용자
                 </th>
@@ -115,31 +131,35 @@ export function UsageHistoryTab({ vehicleId, page }: { vehicleId: string; page: 
             </thead>
             <tbody>
               {query.data.items.map((item) => (
-                <tr key={item.id} className="border-b border-dashboard-vehicles-border last:border-b-0">
+                <tr key={item.rentalId} className="border-b border-dashboard-vehicles-border last:border-b-0">
                   <td className="px-3 py-3">
                     <p className="m-0 text-sm font-medium text-dashboard-usage-text">
                       {item.renterName}
                     </p>
-                    <p className="m-0 text-xs text-dashboard-usage-text-muted">{item.renterPhone}</p>
+                    <p className="m-0 text-xs text-dashboard-usage-text-muted">{item.contact}</p>
                   </td>
                   <td className="px-3 py-3 text-sm text-dashboard-usage-text">
-                    {formatVehicleDateLabel(item.rentedAt)} ~ {formatVehicleDateLabel(item.returnedAt)}
+                    {formatRentalDurationLabel(item.rentalMinutes)}
                   </td>
                   <td className="px-3 py-3 text-sm text-dashboard-usage-text">
-                    {item.mileageKm.toLocaleString("ko-KR")}km
+                    {formatDistanceKmLabel(item.distanceKm)}
                   </td>
                   <td className="px-3 py-3 text-sm text-dashboard-usage-text">
-                    {item.alertCount > 0 ? `${item.alertCount}건` : null}
+                    {formatAlertCountLabel(item.alertCount)}
                   </td>
                   <td className="px-3 py-3">
-                    <button
-                      type="button"
-                      aria-label={`${item.renterName} 이용 리포트 다운로드`}
-                      className="flex items-center gap-1 text-xs text-dashboard-usage-text-subtle outline-none focus-visible:ring-2 focus-visible:ring-dashboard-sidebar"
-                    >
-                      <FileText aria-hidden="true" className="h-3.5 w-3.5" />
-                      리포트
-                    </button>
+                    {item.reportDownloadUrl === null ? null : (
+                      <a
+                        href={item.reportDownloadUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`${item.renterName} 이용 리포트 다운로드`}
+                        className="flex items-center gap-[3px] text-xs text-dashboard-usage-text-subtle outline-none focus-visible:ring-2 focus-visible:ring-dashboard-sidebar"
+                      >
+                        <LinkIcon aria-hidden="true" className="h-5 w-5 text-dashboard-chart-accent" />
+                        리포트
+                      </a>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -147,21 +167,22 @@ export function UsageHistoryTab({ vehicleId, page }: { vehicleId: string; page: 
           </table>
           </div>
 
-          <p className="m-0 pt-3 text-center text-xs text-dashboard-vehicles-label">
-            전체 {query.data.pageInfo.totalCount}건 중{" "}
-            {(query.data.pageInfo.page - 1) * query.data.pageInfo.pageSize + 1}-
-            {Math.min(
-              query.data.pageInfo.page * query.data.pageInfo.pageSize,
-              query.data.pageInfo.totalCount,
-            )}{" "}
-            표시
-          </p>
-
-          <UsagePagination
-            vehicleId={vehicleId}
-            currentPage={query.data.pageInfo.page}
-            totalPages={query.data.pageInfo.totalPages}
-          />
+          <div className="flex flex-col items-center gap-3 pt-3 sm:flex-row sm:justify-between">
+            <p className="m-0 text-xs text-dashboard-text-muted">
+              전체 {query.data.pageInfo.totalCount}건 중{" "}
+              {(query.data.pageInfo.page - 1) * query.data.pageInfo.pageSize + 1}-
+              {Math.min(
+                query.data.pageInfo.page * query.data.pageInfo.pageSize,
+                query.data.pageInfo.totalCount,
+              )}{" "}
+              표시
+            </p>
+            <UsagePagination
+              vehicleId={vehicleId}
+              currentPage={query.data.pageInfo.page}
+              totalPages={query.data.pageInfo.totalPages}
+            />
+          </div>
         </>
       )}
     </div>
