@@ -127,19 +127,21 @@ export interface VehicleManagementListResponse {
 // ---------------------------------------------------------------------------
 // Issue #15 — `/dashboard/vehicles/[vehicleId]` detail screen.
 //
-// TODO(#15): the alert-history/usage-history/tire-detail/tire-trend payloads
-// further below are still provisional (`.claude/handoffs/15-api-specs.md`
-// "Contract status") — re-verify field names/units/envelope shape once the
-// real backend contract for those 4 endpoints is confirmed, and re-validate
-// the 4 adapters in `lib/dashboard/vehicles/` that consume them at that
-// point.
+// TODO(#15): the usage-history/tire-detail/tire-trend payloads further below
+// are still provisional (`.claude/handoffs/15-api-specs.md` "Contract
+// status") — re-verify field names/units/envelope shape once the real
+// backend contract for those 3 endpoints is confirmed, and re-validate the 3
+// adapters in `lib/dashboard/vehicles/` that consume them at that point.
 //
-// `VehicleDetailDto`/`VehicleDetailResponse` (the "차량 정보" panel) and
-// `CurrentRental`/`CurrentRentalResponse` (the "예약 내역" panel) below are
-// NOT part of that TODO — both are confirmed against the real backend
-// contract as of issue #42 (`.claude/handoffs/42-api-specs.md`), replacing
-// the #15 provisional `VehicleDetailDto extends VehicleDto` /
-// `ReservationSummaryDto` shapes entirely (breaking change).
+// `VehicleDetailDto`/`VehicleDetailResponse` (the "차량 정보" panel),
+// `CurrentRental`/`CurrentRentalResponse` (the "예약 내역" panel), and
+// `AlertHistoryItem`/`VehicleAlertHistoryResponse` (the "알림 이력" panel)
+// below are NOT part of that TODO — all three are confirmed against the real
+// backend contract as of issue #42 (`.claude/handoffs/42-api-specs.md`) and
+// issue #47 (`.claude/handoffs/47-api-specs.md`), replacing the #15
+// provisional `VehicleDetailDto extends VehicleDto` / `ReservationSummaryDto`
+// / `id`/`tirePosition`/`message`/`occurredAt` shapes entirely (breaking
+// change).
 // ---------------------------------------------------------------------------
 
 export type VehicleOption =
@@ -294,12 +296,30 @@ export interface CurrentRentalResponse {
   content: CurrentRental;
 }
 
-/** `GET /api/dashboard/vehicles/{vehicleId}/alerts` item. `tirePosition` is null for non-tire alerts. */
+export type AlertLevel = "WARNING" | "DANGER";
+
+export const ALERT_LEVELS: readonly AlertLevel[] = ["WARNING", "DANGER"] as const;
+
+export function isAlertLevel(value: unknown): value is AlertLevel {
+  return (
+    typeof value === "string" && (ALERT_LEVELS as readonly string[]).includes(value)
+  );
+}
+
+/**
+ * `GET /api/dashboard/vehicles/{vehicleId}/alerts` item (issue #47, confirmed
+ * real backend contract — replaces the #15 provisional
+ * `id`/`tirePosition`/`message`/`occurredAt` shape entirely, breaking
+ * change). `position` is non-null (unlike the removed `tirePosition`).
+ * `alertLevel` is validated but never rendered (PM Scope: "alertLevel 미표시").
+ */
 export interface AlertHistoryItem {
-  id: string;
-  tirePosition: WheelPosition | null;
-  message: string;
-  occurredAt: string;
+  alertId: string;
+  tireId: string;
+  position: WheelPosition;
+  alertLevel: AlertLevel;
+  alertTitle: string;
+  alertTime: string;
 }
 
 /** `GET /api/dashboard/vehicles/{vehicleId}/usage-history` item (PM AC19). */
@@ -321,12 +341,11 @@ export interface PageInfo {
   totalPages: number;
 }
 
+/** `{statusCode, error, content}` envelope — `content` is the array directly (issue #47, no `alerts` wrapping). */
 export interface VehicleAlertHistoryResponse {
   statusCode: number;
   error: string | null;
-  content: {
-    alerts: AlertHistoryItem[];
-  };
+  content: AlertHistoryItem[];
 }
 
 export interface VehicleUsageHistoryResponse {

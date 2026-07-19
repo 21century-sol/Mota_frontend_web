@@ -199,3 +199,57 @@ const VEHICLE_OPTION_LABELS: Record<VehicleOption, string> = {
 export function formatVehicleOptionLabel(option: VehicleOption): string {
   return VEHICLE_OPTION_LABELS[option];
 }
+
+// ---------------------------------------------------------------------------
+// Issue #47 — "알림 이력" panel time formatter (additive).
+// ---------------------------------------------------------------------------
+
+/**
+ * Thrown when a value passed to {@link formatKstWireDateTimeLabel} doesn't
+ * match the "YYYY.MM.DD HH:mm:ss" KST wire format (issue #47). A local error
+ * class distinct from `alert-history-api.ts`'s
+ * `VehicleAlertHistoryContractMismatchError` so this pure formatter has no
+ * dependency on the adapter module (PM/API handoff design freedom,
+ * `.claude/handoffs/47-api-specs.md` "Non-blocking Design Notes").
+ */
+export class AlertHistoryTimeFormatError extends Error {
+  constructor(reason: string) {
+    super(`Alert history time format mismatch: ${reason}`);
+    this.name = "AlertHistoryTimeFormatError";
+  }
+}
+
+/**
+ * "YYYY.MM.DD HH:mm:ss" — KST wall-clock wire format (not ISO, no timezone
+ * suffix). Locally re-defined (not imported from `current-rental-api.ts`'s
+ * module-private same-named pattern, nor from `alert-history-api.ts`'s own
+ * copy) — PM handoff Assumption A1, `.claude/handoffs/47-pm.md`.
+ */
+const WIRE_DATETIME_PATTERN = /^(\d{4})\.(\d{2})\.(\d{2}) (\d{2}):(\d{2}):(\d{2})$/;
+
+/**
+ * `"YYYY.MM.DD HH:mm:ss"` KST wire string → `"YYYY.MM.DD 오전/오후 HH:mm"`
+ * display label (issue #47 AC6). Uses the regex match groups directly
+ * (`hour`/`minute`) instead of round-tripping through a `Date` — same
+ * approach as `current-rental-api.ts`'s `formatKstWireDateLabel` — so the
+ * result never shifts with the host timezone.
+ *
+ * `hour < 12` → "오전", `hour >= 12` → "오후"; `displayHour = hour % 12 === 0
+ * ? 12 : hour % 12`, always 2-digit zero-padded. Examples: "11:00:00" →
+ * "오전 11:00", "14:30:00" → "오후 02:30", "00:07:00" → "오전 12:07",
+ * "12:00:00" → "오후 12:00".
+ */
+export function formatKstWireDateTimeLabel(wireValue: string): string {
+  const match = WIRE_DATETIME_PATTERN.exec(wireValue);
+  if (!match) {
+    throw new AlertHistoryTimeFormatError(
+      `date value "${wireValue}" does not match the "YYYY.MM.DD HH:mm:ss" wire format`,
+    );
+  }
+  const [, year, month, day, hourStr, minuteStr] = match;
+  const hour = Number(hourStr);
+  const period = hour < 12 ? "오전" : "오후";
+  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+  const hh = displayHour.toString().padStart(2, "0");
+  return `${year}.${month}.${day} ${period} ${hh}:${minuteStr}`;
+}

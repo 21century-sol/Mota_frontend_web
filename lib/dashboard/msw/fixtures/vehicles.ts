@@ -384,49 +384,70 @@ export const currentRentalFixturesById: Record<string, CurrentRental> = {
   },
 } satisfies Record<string, CurrentRental>;
 
+/**
+ * Newest-first, fixed arrays (issue #47, `.claude/handoffs/47-api-specs.md`
+ * MSW Scenarios) — the array literal's own order *is* the "server-returned
+ * newest-first" order; `toVehicleAlertHistoryItems` never re-sorts, so the
+ * order declared here is exactly what the UI renders. Times are static
+ * "YYYY.MM.DD HH:mm:ss" KST wire strings computed backward from the fixed
+ * `FIXED_NOW` used across the vehicle-detail fixtures (2026-07-19), not
+ * `new Date()`.
+ */
 export const alertHistoryFixturesById: Record<string, AlertHistoryItem[]> = {
   "vehicle-mgmt-001": [
     {
-      id: "alert-hist-001-01",
-      tirePosition: null,
-      message: "정기 점검이 완료되었습니다.",
-      occurredAt: "2026-06-01T02:00:00.000Z",
+      alertId: "alert-hist-001-02",
+      tireId: "tire-001-fr",
+      position: "FR",
+      alertLevel: "WARNING",
+      alertTitle: "공기압 알림",
+      alertTime: "2026.07.18 11:00:00",
     },
     {
-      id: "alert-hist-001-02",
-      tirePosition: "FR",
-      message: "타이어 공기압을 점검했습니다.",
-      occurredAt: "2026-06-15T05:00:00.000Z",
+      alertId: "alert-hist-001-01",
+      tireId: "tire-001-fl",
+      position: "FL",
+      alertLevel: "DANGER",
+      alertTitle: "마모도 알림",
+      alertTime: "2026.06.01 10:00:00",
     },
   ],
   "vehicle-mgmt-003": [
     {
-      id: "alert-hist-003-01",
-      tirePosition: "FR",
-      message: "공기압이 위험 수준입니다.",
-      occurredAt: "2026-07-10T01:00:00.000Z",
+      alertId: "alert-hist-003-01",
+      tireId: "tire-003-fr",
+      position: "FR",
+      alertLevel: "DANGER",
+      alertTitle: "공기압 알림",
+      alertTime: "2026.07.17 10:01:00",
     },
     {
-      id: "alert-hist-003-02",
-      tirePosition: "FL",
-      message: "마모도가 주의 수준입니다.",
-      occurredAt: "2026-07-08T03:00:00.000Z",
+      alertId: "alert-hist-003-02",
+      tireId: "tire-003-fl",
+      position: "FL",
+      alertLevel: "WARNING",
+      alertTitle: "마모도 알림",
+      alertTime: "2026.07.15 14:30:00",
     },
     {
-      id: "alert-hist-003-03",
-      tirePosition: null,
-      message: "정기 점검 알림이 도착했습니다.",
-      occurredAt: "2026-06-20T06:00:00.000Z",
+      alertId: "alert-hist-003-03",
+      tireId: "tire-003-rl",
+      position: "RL",
+      alertLevel: "WARNING",
+      alertTitle: "펑크 알림",
+      alertTime: "2026.06.20 09:05:00",
     },
   ],
-  // Empty (AC11).
+  // Empty (AC3/PM AC3).
   "vehicle-mgmt-004": [],
   "vehicle-mgmt-007": [
     {
-      id: "alert-hist-007-01",
-      tirePosition: "RL",
-      message: "휠 얼라이먼트 점검이 필요합니다.",
-      occurredAt: "2026-07-06T02:00:00.000Z",
+      alertId: "alert-hist-007-01",
+      tireId: "tire-007-rl",
+      position: "RL",
+      alertLevel: "WARNING",
+      alertTitle: "온도 알림",
+      alertTime: "2026.07.06 00:07:00",
     },
   ],
 } satisfies Record<string, AlertHistoryItem[]>;
@@ -576,11 +597,17 @@ export function toCurrentRentalResponse(vehicleId: string): CurrentRentalRespons
   };
 }
 
+/**
+ * `content` is the array directly (issue #47, no `alerts` wrapping). An
+ * unrecognized `vehicleId` falls back to `[]`, same pattern as
+ * `toCurrentRentalResponse`'s `{ rented: false }` fallback — this endpoint's
+ * confirmed contract has no dedicated not-found case.
+ */
 export function toVehicleAlertHistoryResponse(vehicleId: string): VehicleAlertHistoryResponse {
   return {
     statusCode: 200,
     error: null,
-    content: { alerts: alertHistoryFixturesById[vehicleId] ?? [] },
+    content: alertHistoryFixturesById[vehicleId] ?? [],
   };
 }
 
