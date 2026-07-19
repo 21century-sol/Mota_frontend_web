@@ -92,7 +92,7 @@ export function VehicleSidePanel({ vehicleId }: { vehicleId: string }) {
               알림 이력을 불러오는 중입니다.
             </p>
           ) : alerts.length === 0 ? (
-            <p role="status" className="m-0 py-4 text-sm text-dashboard-vehicles-label">
+            <p role="status" className="m-0 py-4 text-sm tracking-tight text-dashboard-account-text">
               확인할 알림이 없습니다.
             </p>
           ) : (

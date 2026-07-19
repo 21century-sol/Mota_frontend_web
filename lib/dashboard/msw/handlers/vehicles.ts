@@ -154,13 +154,29 @@ export const vehicleCurrentRentalSlowHandler = http.get(
   },
 );
 
+/**
+ * success: looks up `params.vehicleId` in `alertHistoryFixturesById` (issue
+ * #47, `.claude/handoffs/47-api-specs.md` MSW Scenarios) — an unrecognized id
+ * falls back to `[]` via `toVehicleAlertHistoryResponse`, not a 404 (this
+ * endpoint's confirmed contract has no dedicated not-found case).
+ */
 export const vehicleAlertHistoryNormalHandler = http.get(
   VEHICLE_ALERT_HISTORY_PATH,
   ({ params }) => HttpResponse.json(toVehicleAlertHistoryResponse(params.vehicleId as string)),
 );
 
+/** server error: 500 (AC4 — error message + retry). */
 export const vehicleAlertHistoryErrorHandler = http.get(VEHICLE_ALERT_HISTORY_PATH, () =>
   HttpResponse.json({ message: "Internal Server Error" }, { status: 500 }),
+);
+
+/** Loading-state coverage, same `delay()` pattern as `vehicleCurrentRentalSlowHandler`. */
+export const vehicleAlertHistorySlowHandler = http.get(
+  VEHICLE_ALERT_HISTORY_PATH,
+  async ({ params }) => {
+    await delay(2000);
+    return HttpResponse.json(toVehicleAlertHistoryResponse(params.vehicleId as string));
+  },
 );
 
 export const vehicleUsageHistoryNormalHandler = http.get(

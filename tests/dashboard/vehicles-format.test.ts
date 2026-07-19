@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  AlertHistoryTimeFormatError,
+  formatKstWireDateTimeLabel,
   formatTireStatusLabel,
   formatVehicleDateLabel,
   formatVehicleInfoFuelTypeLabel,
@@ -119,5 +121,28 @@ describe("formatVehicleOptionLabel (issue #42)", () => {
     ["REAR_CAMERA", "후방 카메라"],
   ] as const)("maps %s to %s", (option, label) => {
     expect(formatVehicleOptionLabel(option)).toBe(label);
+  });
+});
+
+describe("formatKstWireDateTimeLabel (issue #47 AC6)", () => {
+  it.each([
+    ["2026.07.18 11:00:00", "2026.07.18 오전 11:00"],
+    ["2026.07.17 10:01:00", "2026.07.17 오전 10:01"],
+    ["2026.07.15 14:30:00", "2026.07.15 오후 02:30"],
+    ["2026.07.06 09:05:00", "2026.07.06 오전 09:05"],
+    ["2026.07.06 00:07:00", "2026.07.06 오전 12:07"],
+    ["2026.07.06 12:00:00", "2026.07.06 오후 12:00"],
+  ] as const)("formats %s as %s (12h, 오전/오후, 2-digit pad)", (wireValue, label) => {
+    expect(formatKstWireDateTimeLabel(wireValue)).toBe(label);
+  });
+
+  it("throws AlertHistoryTimeFormatError for a non-KST-wire value (e.g. ISO)", () => {
+    expect(() => formatKstWireDateTimeLabel("2026-07-18T11:00:00.000Z")).toThrow(
+      AlertHistoryTimeFormatError,
+    );
+  });
+
+  it("throws AlertHistoryTimeFormatError for an unparsable string instead of returning a placeholder", () => {
+    expect(() => formatKstWireDateTimeLabel("not-a-date")).toThrow(AlertHistoryTimeFormatError);
   });
 });

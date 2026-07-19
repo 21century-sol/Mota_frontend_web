@@ -1,11 +1,14 @@
 import type { AlertHistoryItem } from "@/types/dashboard/vehicle";
-import { isWheelPosition } from "@/types/dashboard/vehicle";
-import { isIsoDateString, isNonEmptyString } from "@/lib/dashboard/vehicles/api";
+import { isAlertLevel, isWheelPosition } from "@/types/dashboard/vehicle";
+import { isNonEmptyString } from "@/lib/dashboard/vehicles/api";
 import { dashboardClientEnv } from "@/lib/dashboard/env/client";
 
 /**
- * TODO(#15): provisional envelope — see `types/dashboard/vehicle.ts`
- * "Issue #15" section header.
+ * Reserved for a genuinely malformed/unexpected response shape — a
+ * well-formed envelope reporting a business failure
+ * (`statusCode !== 200 || error !== null`) is a
+ * {@link VehicleAlertHistoryFetchError} instead (issue #47, same 2-stage
+ * split as `current-rental-api.ts`/`detail-api.ts`).
  */
 export class VehicleAlertHistoryContractMismatchError extends Error {
   constructor(reason: string) {
@@ -32,45 +35,81 @@ export class VehicleAlertHistoryFetchError extends Error {
   }
 }
 
+/**
+ * "YYYY.MM.DD HH:mm:ss" — KST wall-clock wire format (not ISO, no timezone
+ * suffix). Locally re-defined (not imported from `current-rental-api.ts`,
+ * whose same-named pattern is module-private) — PM handoff Assumption A1,
+ * `.claude/handoffs/47-pm.md`.
+ */
+const WIRE_DATETIME_PATTERN = /^(\d{4})\.(\d{2})\.(\d{2}) (\d{2}):(\d{2}):(\d{2})$/;
+
+function isWireDateTimeString(value: unknown): value is string {
+  return typeof value === "string" && WIRE_DATETIME_PATTERN.test(value);
+}
+
 function isAlertHistoryItem(value: unknown): value is AlertHistoryItem {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as Record<string, unknown>;
   return (
-    isNonEmptyString(candidate.id) &&
-    (candidate.tirePosition === null || isWheelPosition(candidate.tirePosition)) &&
-    typeof candidate.message === "string" &&
-    isIsoDateString(candidate.occurredAt)
+    isNonEmptyString(candidate.alertId) &&
+    isNonEmptyString(candidate.tireId) &&
+    isWheelPosition(candidate.position) &&
+    isAlertLevel(candidate.alertLevel) &&
+    isNonEmptyString(candidate.alertTitle) &&
+    isWireDateTimeString(candidate.alertTime)
   );
 }
 
-/** unknown → UI model list (PM AC10/AC11). A duplicate `id` or invalid entry is a contract mismatch, not a dropped row. */
+/**
+ * unknown → typed `AlertHistoryItem[]` (issue #47). Same 2-stage envelope
+ * pattern as `current-rental-api.ts`/`detail-api.ts`: a business failure
+ * (`statusCode !== 200 || error !== null`) is a
+ * {@link VehicleAlertHistoryFetchError}, a malformed `content` shape — not an
+ * array, an invalid entry, or a duplicate `alertId` — is a
+ * {@link VehicleAlertHistoryContractMismatchError}. `content` is the array
+ * directly (no `alerts` wrapping) and entries are pushed in the server's
+ * given order — never re-sorted (PM/API handoff: server already returns
+ * newest-first).
+ */
 export function toVehicleAlertHistoryItems(raw: unknown): AlertHistoryItem[] {
-  if (typeof raw !== "object" || raw === null || !("content" in raw)) {
+  if (typeof raw !== "object" || raw === null) {
+    throw new VehicleAlertHistoryContractMismatchError("response is not an object");
+  }
+  const envelope = raw as Record<string, unknown>;
+
+  if (typeof envelope.statusCode !== "number") {
     throw new VehicleAlertHistoryContractMismatchError(
-      "response is missing the `content` envelope field",
+      "response is missing a numeric `statusCode` field",
     );
   }
-  const content = (raw as Record<string, unknown>).content;
-  if (typeof content !== "object" || content === null || !("alerts" in content)) {
-    throw new VehicleAlertHistoryContractMismatchError("`content` is missing the `alerts` field");
+  if (envelope.statusCode !== 200 || envelope.error !== null) {
+    throw new VehicleAlertHistoryFetchError(
+      envelope.statusCode >= 500 ? "server-error" : "client-error",
+      "알림 이력을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+      undefined,
+      envelope.statusCode,
+    );
   }
-  const alerts = (content as Record<string, unknown>).alerts;
-  if (!Array.isArray(alerts)) {
-    throw new VehicleAlertHistoryContractMismatchError("`content.alerts` is not an array");
+
+  const content = envelope.content;
+  if (!Array.isArray(content)) {
+    throw new VehicleAlertHistoryContractMismatchError("`content` is not an array");
   }
 
   const seenIds = new Set<string>();
   const items: AlertHistoryItem[] = [];
-  for (const entry of alerts) {
+  for (const entry of content) {
     if (!isAlertHistoryItem(entry)) {
       throw new VehicleAlertHistoryContractMismatchError(
-        "array entry is missing a required field or has an invalid `tirePosition`",
+        "array entry is missing a required field or has an invalid enum/date value",
       );
     }
-    if (seenIds.has(entry.id)) {
-      throw new VehicleAlertHistoryContractMismatchError(`duplicate alert id: ${entry.id}`);
+    if (seenIds.has(entry.alertId)) {
+      throw new VehicleAlertHistoryContractMismatchError(
+        `duplicate alert id: ${entry.alertId}`,
+      );
     }
-    seenIds.add(entry.id);
+    seenIds.add(entry.alertId);
     items.push(entry);
   }
   return items;

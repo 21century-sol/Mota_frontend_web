@@ -91,7 +91,7 @@ describe("VehicleDetailSection", () => {
     expect(await screen.findByText("확인할 알림이 없습니다.")).toBeInTheDocument();
   });
 
-  it("renders the current-rental summary (renter/dates) and alert history items (tire position + message) (issue #42, AC10)", async () => {
+  it("renders the current-rental summary (renter/dates) and alert history items (position + alertTitle) (issue #42/#47, AC10)", async () => {
     server.use(vehicleDetailNormalHandler);
     renderSection("vehicle-mgmt-003");
 
@@ -100,13 +100,8 @@ describe("VehicleDetailSection", () => {
     expect(screen.getByText("2026.07.15 ~ 2026.07.23")).toBeInTheDocument();
     expect(screen.getByText(/반납까지 .+(일|시간|분) 남았습니다/)).toBeInTheDocument();
 
-    // vehicle-mgmt-003 fixture alert: FR position + "공기압이 위험 수준입니다." message.
-    expect(
-      await screen.findByText(
-        (_content, element) =>
-          element?.textContent === "전우  공기압이 위험 수준입니다.",
-        { selector: "p" },
-      ),
-    ).toBeInTheDocument();
+    // vehicle-mgmt-003 fixture alert (newest-first order): FR position + "공기압 알림" title,
+    // raw enum code (not the Korean formatWheelPositionLabel) — issue #47 confirmed contract.
+    expect(await screen.findByText("FR 공기압 알림")).toBeInTheDocument();
   });
 });
