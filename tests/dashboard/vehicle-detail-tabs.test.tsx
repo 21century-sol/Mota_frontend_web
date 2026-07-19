@@ -11,9 +11,9 @@ vi.mock("next/navigation", () => ({
 import { VehicleDetailTabs } from "@/components/dashboard/vehicles/VehicleDetailTabs";
 import { server } from "@/lib/dashboard/msw/server";
 import {
+  vehicleRentalHistoryNormalHandler,
   vehicleTireDetailNormalHandler,
   vehicleTireTrendNormalHandler,
-  vehicleUsageHistoryNormalHandler,
 } from "@/lib/dashboard/msw/handlers/vehicles";
 
 function renderTabs(activeTab: "tires" | "usage" | "inspection" | "info" = "tires", page = 1) {
@@ -54,7 +54,7 @@ describe("VehicleDetailTabs", () => {
   });
 
   it("renders the usage-history panel (not the tires panel) when activeTab is 'usage'", async () => {
-    server.use(vehicleUsageHistoryNormalHandler);
+    server.use(vehicleRentalHistoryNormalHandler);
     renderTabs("usage", 1);
 
     expect(await screen.findByRole("table")).toBeInTheDocument();

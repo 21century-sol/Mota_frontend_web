@@ -6,9 +6,9 @@ import {
   vehicleAlertHistoryNormalHandler,
   vehicleCurrentRentalNormalHandler,
   vehicleDetailNormalHandler,
+  vehicleRentalHistoryNormalHandler,
   vehicleTireDetailNormalHandler,
   vehicleTireTrendNormalHandler,
-  vehicleUsageHistoryNormalHandler,
   vehiclesNormalHandler,
 } from "@/lib/dashboard/msw/handlers/vehicles";
 
@@ -25,7 +25,8 @@ export const handlers: RequestHandler[] = [
   // Issue #42 — `/dashboard/vehicles/[vehicleId]/current-rental`.
   vehicleCurrentRentalNormalHandler,
   vehicleAlertHistoryNormalHandler,
-  vehicleUsageHistoryNormalHandler,
+  // Issue #49 — `/dashboard/vehicles/[vehicleId]/rentals`.
+  vehicleRentalHistoryNormalHandler,
   vehicleTireDetailNormalHandler,
   vehicleTireTrendNormalHandler,
 ];

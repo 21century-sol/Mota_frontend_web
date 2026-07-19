@@ -2,22 +2,23 @@ import type {
   AlertHistoryItem,
   CurrentRental,
   CurrentRentalResponse,
-  PageInfo,
+  RentalHistoryItem,
+  RentalStatus,
   TireDetail,
   TireStatus,
   TireTrendMetric,
   TireTrendPoint,
-  UsageHistoryItem,
   VehicleAlertHistoryResponse,
   VehicleDetailDto,
   VehicleDetailResponse,
   VehicleDto,
   VehicleManagementListResponse,
   VehicleManagementStatus,
+  VehicleRentalHistoryResponse,
   VehicleTireDetailResponse,
   VehicleTireTrendResponse,
-  VehicleUsageHistoryResponse,
 } from "@/types/dashboard/vehicle";
+import { RENTAL_STATUSES } from "@/types/dashboard/vehicle";
 
 /**
  * Normal scenario (12 vehicles): `status` AVAILABLE×5 / RENTED×4 / REPAIR×3,
@@ -452,43 +453,165 @@ export const alertHistoryFixturesById: Record<string, AlertHistoryItem[]> = {
   ],
 } satisfies Record<string, AlertHistoryItem[]>;
 
-function buildUsageHistoryItems(vehicleId: string, count: number): UsageHistoryItem[] {
+/**
+ * `GET /api/dashboard/vehicles/{vehicleId}/rentals` fixtures (issue #49,
+ * confirmed real backend contract — replaces the #15 provisional
+ * `UsageHistoryItem`/`usageHistoryFixturesById` set entirely). Renter names
+ * are synthetic Korean rental-car data (CLAUDE.md §6). All wire date strings
+ * are static "YYYY.MM.DD HH:mm:ss" KST literals — never `new Date()`.
+ *
+ * `vehicle-mgmt-003` (20 rows) exercises the 3-page/8-per-page pagination
+ * boundary (8/8/4 split, `.claude/handoffs/49-api-specs.md` MSW Scenarios) —
+ * generated deterministically since the exact field values don't matter for
+ * that scenario, only that they're valid/unique. `vehicle-mgmt-001` (5 rows,
+ * `.claude/handoffs/49-api-specs.md`) is hand-written to cover all 3
+ * `RentalStatus` values (validated but never rendered). `vehicle-mgmt-007`
+ * (3 rows) is hand-written to hit every PM display-rule boundary in one
+ * fixture: `rentalMinutes` 0/4860, `distanceKm` 312.5/45.2, `alertCount`
+ * null/0/3, `reportDownloadUrl` null/non-null.
+ */
+function buildBulkRentalHistoryItems(vehicleId: string, count: number): RentalHistoryItem[] {
   const renters: Array<{ name: string; phone: string }> = [
-    { name: "박지호", phone: "010-0000-0001" },
+    { name: "윤지호", phone: "010-0000-0001" },
     { name: "최유진", phone: "010-0000-0002" },
     { name: "정하윤", phone: "010-0000-0003" },
     { name: "강도현", phone: "010-0000-0004" },
-    { name: "윤서준", phone: "010-0000-0005" },
-    { name: "임채원", phone: "010-0000-0006" },
-    { name: "한지민", phone: "010-0000-0007" },
-    { name: "오승우", phone: "010-0000-0008" },
-    { name: "서연우", phone: "010-0000-0009" },
-    { name: "배수아", phone: "010-0000-0010" },
+    { name: "임채원", phone: "010-0000-0005" },
   ];
 
   return Array.from({ length: count }, (_, index) => {
     const renter = renters[index % renters.length];
-    const rentedAt = new Date(Date.UTC(2026, 5, 1 + index * 3)).toISOString();
-    const returnedAt = new Date(Date.UTC(2026, 5, 3 + index * 3)).toISOString();
+    // Kept within a single fixed month (June, day<=28) so no calendar-rollover
+    // arithmetic is needed — a static literal per row, not `new Date()`.
+    const day = (index % 14) + 1;
+    const startDay = String(day).padStart(2, "0");
+    const endDay = String(Math.min(day + 1, 28)).padStart(2, "0");
+    const status: RentalStatus = RENTAL_STATUSES[index % RENTAL_STATUSES.length];
     return {
-      id: `usage-hist-${vehicleId}-${String(index + 1).padStart(2, "0")}`,
+      rentalId: `rental-hist-${vehicleId}-${String(index + 1).padStart(2, "0")}`,
       renterName: renter.name,
-      renterPhone: renter.phone,
-      rentedAt,
-      returnedAt,
-      mileageKm: 120 + index * 37,
-      alertCount: index % 3 === 0 ? 0 : (index % 3),
-    } satisfies UsageHistoryItem;
+      contact: renter.phone,
+      status,
+      startDate: `2026.06.${startDay} 09:00:00`,
+      endDate: `2026.06.${endDay} 11:00:00`,
+      rentalMinutes: 1500 + index * 47,
+      distanceKm: 80 + index * 12.5,
+      alertCount: index % 4 === 0 ? null : index % 3,
+      reportDownloadUrl:
+        index % 2 === 0
+          ? `https://mota-app.duckdns.org/reports/${vehicleId}-${index + 1}.pdf`
+          : null,
+    } satisfies RentalHistoryItem;
   });
 }
 
-export const usageHistoryFixturesById: Record<string, UsageHistoryItem[]> = {
-  "vehicle-mgmt-001": buildUsageHistoryItems("vehicle-mgmt-001", 5),
-  "vehicle-mgmt-003": buildUsageHistoryItems("vehicle-mgmt-003", 10),
-  // Empty (AC20).
+export const rentalHistoryFixturesById: Record<string, RentalHistoryItem[]> = {
+  "vehicle-mgmt-001": [
+    {
+      rentalId: "rental-hist-vehicle-mgmt-001-01",
+      renterName: "윤지호",
+      contact: "010-0000-0001",
+      status: "RETURNED",
+      startDate: "2026.06.01 09:00:00",
+      endDate: "2026.06.03 11:00:00",
+      rentalMinutes: 3000,
+      distanceKm: 210.4,
+      alertCount: 2,
+      reportDownloadUrl: "https://mota-app.duckdns.org/reports/vehicle-mgmt-001-01.pdf",
+    },
+    {
+      rentalId: "rental-hist-vehicle-mgmt-001-02",
+      renterName: "최유진",
+      contact: "010-0000-0002",
+      status: "RETURNED",
+      startDate: "2026.06.10 10:00:00",
+      endDate: "2026.06.10 18:00:00",
+      rentalMinutes: 480,
+      distanceKm: 65.8,
+      alertCount: null,
+      reportDownloadUrl: "https://mota-app.duckdns.org/reports/vehicle-mgmt-001-02.pdf",
+    },
+    {
+      rentalId: "rental-hist-vehicle-mgmt-001-03",
+      renterName: "정하윤",
+      contact: "010-0000-0003",
+      status: "IN_PROGRESS",
+      startDate: "2026.07.15 08:00:00",
+      endDate: "2026.07.20 08:00:00",
+      rentalMinutes: 2160,
+      distanceKm: 150,
+      alertCount: 0,
+      reportDownloadUrl: null,
+    },
+    {
+      rentalId: "rental-hist-vehicle-mgmt-001-04",
+      renterName: "강도현",
+      contact: "010-0000-0004",
+      status: "RESERVED",
+      startDate: "2026.07.25 09:00:00",
+      endDate: "2026.07.27 09:00:00",
+      rentalMinutes: 0,
+      distanceKm: 0,
+      alertCount: null,
+      reportDownloadUrl: null,
+    },
+    {
+      rentalId: "rental-hist-vehicle-mgmt-001-05",
+      renterName: "임채원",
+      contact: "010-0000-0005",
+      status: "RETURNED",
+      startDate: "2026.05.20 09:00:00",
+      endDate: "2026.05.22 09:00:00",
+      rentalMinutes: 2880,
+      distanceKm: 340.2,
+      alertCount: 1,
+      reportDownloadUrl: "https://mota-app.duckdns.org/reports/vehicle-mgmt-001-05.pdf",
+    },
+  ],
+  "vehicle-mgmt-003": buildBulkRentalHistoryItems("vehicle-mgmt-003", 20),
+  // Empty (PM AC3 for this tab).
   "vehicle-mgmt-004": [],
-  "vehicle-mgmt-007": buildUsageHistoryItems("vehicle-mgmt-007", 3),
-} satisfies Record<string, UsageHistoryItem[]>;
+  // Boundary coverage (PM AC5/AC6/AC7): rentalMinutes 0/4860, distanceKm
+  // 312.5/45.2, alertCount null/0/3, reportDownloadUrl null/non-null.
+  "vehicle-mgmt-007": [
+    {
+      rentalId: "rental-hist-vehicle-mgmt-007-01",
+      renterName: "윤지호",
+      contact: "010-0000-0001",
+      status: "RESERVED",
+      startDate: "2026.07.10 09:00:00",
+      endDate: "2026.07.10 09:00:00",
+      rentalMinutes: 0,
+      distanceKm: 0,
+      alertCount: null,
+      reportDownloadUrl: null,
+    },
+    {
+      rentalId: "rental-hist-vehicle-mgmt-007-02",
+      renterName: "최유진",
+      contact: "010-0000-0002",
+      status: "RETURNED",
+      startDate: "2026.06.01 09:00:00",
+      endDate: "2026.06.04 12:00:00",
+      rentalMinutes: 4860,
+      distanceKm: 312.5,
+      alertCount: 0,
+      reportDownloadUrl: "https://mota-app.duckdns.org/reports/vehicle-mgmt-007-02.pdf",
+    },
+    {
+      rentalId: "rental-hist-vehicle-mgmt-007-03",
+      renterName: "정하윤",
+      contact: "010-0000-0003",
+      status: "IN_PROGRESS",
+      startDate: "2026.07.16 09:00:00",
+      endDate: "2026.07.18 09:00:00",
+      rentalMinutes: 1200,
+      distanceKm: 45.2,
+      alertCount: 3,
+      reportDownloadUrl: "https://mota-app.duckdns.org/reports/vehicle-mgmt-007-03.pdf",
+    },
+  ],
+} satisfies Record<string, RentalHistoryItem[]>;
 
 export const tireDetailFixturesById: Record<string, TireDetail[]> = {
   "vehicle-mgmt-001": [
@@ -611,18 +734,28 @@ export function toVehicleAlertHistoryResponse(vehicleId: string): VehicleAlertHi
   };
 }
 
-export function toVehicleUsageHistoryResponse(
+/**
+ * `page` is 0-based (issue #49 confirmed contract) — the handler reads it
+ * straight off the request's `page` query param, no 1-based conversion here
+ * (that only happens in the adapter's `toVehicleRentalHistoryResult`). An
+ * unrecognized `vehicleId` falls back to `[]`, same "no dedicated not-found
+ * case" convention as `toCurrentRentalResponse`/`toVehicleAlertHistoryResponse`.
+ */
+export function toVehicleRentalHistoryResponse(
   vehicleId: string,
   page: number,
-  pageSize: number,
-): VehicleUsageHistoryResponse {
-  const allItems = usageHistoryFixturesById[vehicleId] ?? [];
-  const totalCount = allItems.length;
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-  const start = (page - 1) * pageSize;
-  const items = allItems.slice(start, start + pageSize);
-  const pageInfo: PageInfo = { page, pageSize, totalCount, totalPages };
-  return { statusCode: 200, error: null, content: { items, pageInfo } };
+  size: number,
+): VehicleRentalHistoryResponse {
+  const allItems = rentalHistoryFixturesById[vehicleId] ?? [];
+  const totalElements = allItems.length;
+  const totalPages = Math.max(1, Math.ceil(totalElements / size));
+  const start = page * size;
+  const content = allItems.slice(start, start + size);
+  return {
+    statusCode: 200,
+    error: null,
+    content: { content, page, size, totalPages, totalElements },
+  };
 }
 
 export function toVehicleTireDetailResponse(vehicleId: string): VehicleTireDetailResponse {

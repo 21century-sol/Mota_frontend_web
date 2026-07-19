@@ -127,21 +127,24 @@ export interface VehicleManagementListResponse {
 // ---------------------------------------------------------------------------
 // Issue #15 — `/dashboard/vehicles/[vehicleId]` detail screen.
 //
-// TODO(#15): the usage-history/tire-detail/tire-trend payloads further below
-// are still provisional (`.claude/handoffs/15-api-specs.md` "Contract
-// status") — re-verify field names/units/envelope shape once the real
-// backend contract for those 3 endpoints is confirmed, and re-validate the 3
-// adapters in `lib/dashboard/vehicles/` that consume them at that point.
+// TODO(#15): the tire-detail/tire-trend payloads further below are still
+// provisional (`.claude/handoffs/15-api-specs.md` "Contract status") —
+// re-verify field names/units/envelope shape once the real backend contract
+// for those 2 endpoints is confirmed, and re-validate the 2 adapters in
+// `lib/dashboard/vehicles/` that consume them at that point.
 //
 // `VehicleDetailDto`/`VehicleDetailResponse` (the "차량 정보" panel),
-// `CurrentRental`/`CurrentRentalResponse` (the "예약 내역" panel), and
-// `AlertHistoryItem`/`VehicleAlertHistoryResponse` (the "알림 이력" panel)
-// below are NOT part of that TODO — all three are confirmed against the real
-// backend contract as of issue #42 (`.claude/handoffs/42-api-specs.md`) and
-// issue #47 (`.claude/handoffs/47-api-specs.md`), replacing the #15
-// provisional `VehicleDetailDto extends VehicleDto` / `ReservationSummaryDto`
-// / `id`/`tirePosition`/`message`/`occurredAt` shapes entirely (breaking
-// change).
+// `CurrentRental`/`CurrentRentalResponse` (the "예약 내역" panel),
+// `AlertHistoryItem`/`VehicleAlertHistoryResponse` (the "알림 이력" panel), and
+// `RentalHistoryItem`/`VehicleRentalHistoryResponse` (the "이용 이력" panel)
+// below are NOT part of that TODO — all four are confirmed against the real
+// backend contract as of issue #42 (`.claude/handoffs/42-api-specs.md`),
+// issue #47 (`.claude/handoffs/47-api-specs.md`), and issue #49
+// (`.claude/handoffs/49-api-specs.md`), replacing the #15 provisional
+// `VehicleDetailDto extends VehicleDto` / `ReservationSummaryDto` /
+// `id`/`tirePosition`/`message`/`occurredAt` / `UsageHistoryItem`
+// (`id`/`renterPhone`/`rentedAt`/`returnedAt`/`mileageKm`, single-level
+// `content.items`/`content.pageInfo`) shapes entirely (breaking change).
 // ---------------------------------------------------------------------------
 
 export type VehicleOption =
@@ -322,25 +325,6 @@ export interface AlertHistoryItem {
   alertTime: string;
 }
 
-/** `GET /api/dashboard/vehicles/{vehicleId}/usage-history` item (PM AC19). */
-export interface UsageHistoryItem {
-  id: string;
-  renterName: string;
-  renterPhone: string;
-  rentedAt: string;
-  returnedAt: string | null;
-  mileageKm: number;
-  alertCount: number;
-}
-
-/** 1-based page metadata, `pageSize` fixed at 8 (PM AC19). */
-export interface PageInfo {
-  page: number;
-  pageSize: number;
-  totalCount: number;
-  totalPages: number;
-}
-
 /** `{statusCode, error, content}` envelope — `content` is the array directly (issue #47, no `alerts` wrapping). */
 export interface VehicleAlertHistoryResponse {
   statusCode: number;
@@ -348,12 +332,73 @@ export interface VehicleAlertHistoryResponse {
   content: AlertHistoryItem[];
 }
 
-export interface VehicleUsageHistoryResponse {
+export type RentalStatus = "RESERVED" | "IN_PROGRESS" | "RETURNED";
+
+export const RENTAL_STATUSES: readonly RentalStatus[] = [
+  "RESERVED",
+  "IN_PROGRESS",
+  "RETURNED",
+] as const;
+
+export function isRentalStatus(value: unknown): value is RentalStatus {
+  return (
+    typeof value === "string" &&
+    (RENTAL_STATUSES as readonly string[]).includes(value)
+  );
+}
+
+/**
+ * `GET /api/dashboard/vehicles/{vehicleId}/rentals` item (issue #49,
+ * confirmed real backend contract — replaces the #15 provisional
+ * `id`/`renterPhone`/`rentedAt`/`returnedAt`/`mileageKm` shape entirely,
+ * breaking change). `startDate`/`endDate` are KST wall-clock wire strings in
+ * `"YYYY.MM.DD HH:mm:ss"` format (not ISO, no timezone suffix). `status`/
+ * `startDate`/`endDate` are validated but never rendered (PM Scope: "status는
+ * 화면 어디에도 렌더하지 않는다"). `alertCount` is `number | null` (PM A4);
+ * `reportDownloadUrl` is `string | null` — `null` hides the report link
+ * entirely (PM display rule).
+ */
+export interface RentalHistoryItem {
+  rentalId: string;
+  renterName: string;
+  contact: string;
+  status: RentalStatus;
+  startDate: string;
+  endDate: string;
+  rentalMinutes: number;
+  distanceKm: number;
+  alertCount: number | null;
+  reportDownloadUrl: string | null;
+}
+
+/**
+ * 1-based page metadata surfaced to the UI, derived from the 0-based
+ * `content.page` returned by the backend (PM A1, issue #49). `pageSize` is
+ * fixed at 8.
+ */
+export interface RentalHistoryPageInfo {
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+}
+
+/**
+ * `{statusCode, error, content}` envelope with a *nested* page wrapper —
+ * `content.content` is the item array, page metadata (`page`/`size`/
+ * `totalPages`/`totalElements`) are sibling fields on the same `content`
+ * object (issue #49 confirmed contract — distinct from the #15 provisional
+ * single-level `content.items`/`content.pageInfo` shape it replaces).
+ */
+export interface VehicleRentalHistoryResponse {
   statusCode: number;
   error: string | null;
   content: {
-    items: UsageHistoryItem[];
-    pageInfo: PageInfo;
+    content: RentalHistoryItem[];
+    page: number;
+    size: number;
+    totalPages: number;
+    totalElements: number;
   };
 }
 
