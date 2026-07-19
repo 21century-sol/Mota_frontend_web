@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   AlertHistoryTimeFormatError,
+  formatAlertCountLabel,
+  formatDistanceKmLabel,
   formatKstWireDateTimeLabel,
+  formatRentalDurationLabel,
   formatTireStatusLabel,
   formatVehicleDateLabel,
   formatVehicleInfoFuelTypeLabel,
@@ -144,5 +147,40 @@ describe("formatKstWireDateTimeLabel (issue #47 AC6)", () => {
 
   it("throws AlertHistoryTimeFormatError for an unparsable string instead of returning a placeholder", () => {
     expect(() => formatKstWireDateTimeLabel("not-a-date")).toThrow(AlertHistoryTimeFormatError);
+  });
+});
+
+describe("formatRentalDurationLabel (issue #49 AC5)", () => {
+  it.each([
+    [0, "0시간 0분"],
+    [4860, "81시간 0분"],
+    [65, "1시간 5분"],
+    [3000, "50시간 0분"],
+  ] as const)("formats %i minutes as %s (no rounding, no day clamping)", (minutes, label) => {
+    expect(formatRentalDurationLabel(minutes)).toBe(label);
+  });
+});
+
+describe("formatDistanceKmLabel (issue #49 AC6)", () => {
+  it.each([
+    [312.5, "312.5km"],
+    [45.2, "45.2km"],
+    [0, "0km"],
+  ] as const)("formats %s km as %s (raw decimal, no rounding)", (km, label) => {
+    expect(formatDistanceKmLabel(km)).toBe(label);
+  });
+});
+
+describe("formatAlertCountLabel (issue #49 AC7)", () => {
+  it("renders an empty string for null", () => {
+    expect(formatAlertCountLabel(null)).toBe("");
+  });
+
+  it("renders an empty string for 0 (not the literal '0건')", () => {
+    expect(formatAlertCountLabel(0)).toBe("");
+  });
+
+  it("renders '{n}건' for a positive count", () => {
+    expect(formatAlertCountLabel(3)).toBe("3건");
   });
 });
