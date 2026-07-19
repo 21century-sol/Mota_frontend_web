@@ -1,3 +1,5 @@
+"use client";
+
 import { Link as LinkIcon } from "lucide-react";
 
 import type { ReservationItem } from "@/types/dashboard/reservation";
@@ -20,9 +22,11 @@ import { ReservationStatusBadge } from "@/components/dashboard/reservations/Rese
  *
  * The "PDF" report button only renders for `RETURNED` rows (Figma: "반납완료
  * 행에만 존재") — `RENTED` rows keep the cell empty rather than a disabled
- * button, matching the confirmed layout fact exactly. It is `onClick`-less
- * (no-op, PM Non-goal: no real download), same pattern as `UsageHistoryTab`'s
- * "리포트" button (issue #15).
+ * button, matching the confirmed layout fact exactly. Clicking it opens
+ * `item.reportDownloadUrl` in a new tab (issue #51 AC4) — same
+ * `window.open(url, "_blank", "noopener,noreferrer")` idiom as an external
+ * download link, chosen because the URL is server-hosted and not a same-origin
+ * route to `router.push`.
  */
 export function ReservationTable({ items }: { items: ReservationItem[] }) {
   return (
@@ -91,6 +95,10 @@ export function ReservationTable({ items }: { items: ReservationItem[] }) {
                     <button
                       type="button"
                       aria-label={`${item.renterName} 리포트 PDF 다운로드`}
+                      onClick={() => {
+                        if (!item.reportDownloadUrl) return;
+                        window.open(item.reportDownloadUrl, "_blank", "noopener,noreferrer");
+                      }}
                       className="flex items-center gap-1 text-[15px] font-medium text-dashboard-chart-accent outline-none focus-visible:ring-2 focus-visible:ring-dashboard-accent-solid"
                     >
                       PDF
