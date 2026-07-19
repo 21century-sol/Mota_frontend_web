@@ -4,6 +4,7 @@ import { summaryNormalHandler } from "@/lib/dashboard/msw/handlers/summary";
 import { alertsNormalHandler } from "@/lib/dashboard/msw/handlers/alerts";
 import {
   vehicleAlertHistoryNormalHandler,
+  vehicleCurrentRentalNormalHandler,
   vehicleDetailNormalHandler,
   vehicleTireDetailNormalHandler,
   vehicleTireTrendNormalHandler,
@@ -21,6 +22,8 @@ export const handlers: RequestHandler[] = [
   vehiclesNormalHandler,
   // Issue #15 — `/dashboard/vehicles/[vehicleId]`.
   vehicleDetailNormalHandler,
+  // Issue #42 — `/dashboard/vehicles/[vehicleId]/current-rental`.
+  vehicleCurrentRentalNormalHandler,
   vehicleAlertHistoryNormalHandler,
   vehicleUsageHistoryNormalHandler,
   vehicleTireDetailNormalHandler,

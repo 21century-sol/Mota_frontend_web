@@ -75,7 +75,7 @@ export function VehicleDetailSection({
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start">
             <VehicleInfoPanel vehicle={query.data.vehicle} />
-            <VehicleSidePanel vehicleId={vehicleId} reservation={query.data.reservation} />
+            <VehicleSidePanel vehicleId={vehicleId} />
           </div>
 
           <VehicleDetailTabs

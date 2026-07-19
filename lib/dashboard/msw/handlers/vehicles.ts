@@ -14,8 +14,10 @@ import {
 import { VEHICLES_ENDPOINT_PATH } from "@/lib/dashboard/vehicles/api";
 import { VEHICLE_DETAIL_ENDPOINT_PATH } from "@/lib/dashboard/vehicles/detail-api";
 import { VEHICLE_USAGE_HISTORY_PAGE_SIZE } from "@/lib/dashboard/vehicles/usage-history-api";
+import { VEHICLE_CURRENT_RENTAL_ENDPOINT_PATH_SUFFIX } from "@/lib/dashboard/vehicles/current-rental-api";
 import {
   filterVehicleFixture,
+  toCurrentRentalResponse,
   toVehicleAlertHistoryResponse,
   toVehicleDetailResponse,
   toVehicleManagementListResponse,
@@ -89,6 +91,7 @@ export const vehiclesSlowHandler = http.get(VEHICLES_ENDPOINT_PATH, async () => 
 // ---------------------------------------------------------------------------
 
 const VEHICLE_DETAIL_PATH = `${VEHICLE_DETAIL_ENDPOINT_PATH}/:vehicleId`;
+const VEHICLE_CURRENT_RENTAL_PATH = `${VEHICLE_DETAIL_ENDPOINT_PATH}/:vehicleId${VEHICLE_CURRENT_RENTAL_ENDPOINT_PATH_SUFFIX}`;
 const VEHICLE_ALERT_HISTORY_PATH = `${VEHICLE_DETAIL_ENDPOINT_PATH}/:vehicleId/alerts`;
 const VEHICLE_USAGE_HISTORY_PATH = `${VEHICLE_DETAIL_ENDPOINT_PATH}/:vehicleId/usage-history`;
 const VEHICLE_TIRE_DETAIL_PATH = `${VEHICLE_DETAIL_ENDPOINT_PATH}/:vehicleId/tires`;
@@ -124,6 +127,31 @@ export const vehicleDetailSlowHandler = http.get(VEHICLE_DETAIL_PATH, async ({ p
   }
   return HttpResponse.json(response);
 });
+
+/**
+ * success: looks up `params.vehicleId` in `currentRentalFixturesById` (issue
+ * #42/#43). An unrecognized id falls back to `{ rented: false }` via
+ * `toCurrentRentalResponse`, not a 404 (this endpoint's confirmed contract has
+ * no dedicated not-found case).
+ */
+export const vehicleCurrentRentalNormalHandler = http.get(
+  VEHICLE_CURRENT_RENTAL_PATH,
+  ({ params }) => HttpResponse.json(toCurrentRentalResponse(params.vehicleId as string)),
+);
+
+/** server error: 500 (error+retry copy for the "예약 내역" panel). */
+export const vehicleCurrentRentalErrorHandler = http.get(VEHICLE_CURRENT_RENTAL_PATH, () =>
+  HttpResponse.json({ message: "Internal Server Error" }, { status: 500 }),
+);
+
+/** Loading-state coverage, same `delay()` pattern as `vehicleDetailSlowHandler`. */
+export const vehicleCurrentRentalSlowHandler = http.get(
+  VEHICLE_CURRENT_RENTAL_PATH,
+  async ({ params }) => {
+    await delay(2000);
+    return HttpResponse.json(toCurrentRentalResponse(params.vehicleId as string));
+  },
+);
 
 export const vehicleAlertHistoryNormalHandler = http.get(
   VEHICLE_ALERT_HISTORY_PATH,
