@@ -11,7 +11,7 @@ function renderTab(vehicleId: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <TireStatusTab vehicleId={vehicleId} vehiclePhotoUrl={undefined} vehicleModel="아반떼 하이브리드" />
+      <TireStatusTab vehicleId={vehicleId} />
     </QueryClientProvider>,
   );
 }
@@ -22,8 +22,8 @@ describe("TireStatusTab", () => {
     renderTab("vehicle-mgmt-001");
 
     // Wait for the tire cards to render before asserting absence of the banner.
-    // "전좌" also appears in TireTrendChart's sr-only accessible table, so match by tag.
-    expect(await screen.findByText("전좌", { selector: "p" })).toBeInTheDocument();
+    // Chart sr-only table still uses 전좌; card headings use Figma "앞 왼쪽 (FL)".
+    expect(await screen.findByText("앞 왼쪽 (FL)", { selector: "p" })).toBeInTheDocument();
     expect(screen.queryByText(/점검이 필요한 타이어가/)).not.toBeInTheDocument();
   });
 
@@ -39,8 +39,9 @@ describe("TireStatusTab", () => {
     server.use(vehicleTireDetailNormalHandler, vehicleTireTrendNormalHandler);
     renderTab("vehicle-mgmt-004");
 
-    const flHeading = await screen.findByText("전좌", { selector: "p" });
-    const flCard = flHeading.closest("div");
+    const flHeading = await screen.findByText("앞 왼쪽 (FL)", { selector: "p" });
+    const flCard = flHeading.closest(".rounded-dashboard-tire-card");
+    expect(flCard).not.toBeNull();
     expect(within(flCard as HTMLElement).getAllByText("—").length).toBeGreaterThan(0);
   });
 
@@ -49,7 +50,7 @@ describe("TireStatusTab", () => {
     const user = userEvent.setup();
     renderTab("vehicle-mgmt-001");
 
-    await screen.findByText("전좌", { selector: "p" });
+    await screen.findByText("앞 왼쪽 (FL)", { selector: "p" });
     expect(await screen.findByRole("heading", { name: "타이어 상태 추이" })).toBeInTheDocument();
 
     const pressureButton = screen.getByRole("button", { name: "공기압" });
