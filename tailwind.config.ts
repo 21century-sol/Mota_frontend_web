@@ -172,6 +172,48 @@ const config: Config = {
         // 적용되지 않아 `filter: drop-shadow(...)` 기반 유틸리티로 등록한다.
         "dashboard-tooltip": "0px 4px 10px rgba(77,77,128,0.12)",
       },
+      // 타이어 상세 화면 펄스(맥동) 애니메이션 (issue #15, Figma node 1:4808
+      // "타이어 이미지_FL"). 중심에 겹쳐진 동심 레이어 4개가 안→밖 순서로 순차 등장한 뒤
+      // 동시에 페이드아웃하며 무한 반복한다. 한 사이클 1650ms = 등장 350ms × 4 + 소멸 250ms.
+      // 각 레이어는 자기 등장 구간까지 opacity 0으로 대기 → 등장 → 소멸 시각(84.85%)까지 유지 →
+      // 전 레이어가 100%에서 동시에 0으로 사라진다. 반투명 레이어는 등장 시 0.92→1로 살짝
+      // 확대되고(코어는 확대 없음), 최대 불투명도는 바깥일수록 진하다(0.95/0.75/0.55, 코어 1).
+      // 각 레이어는 translate(-50%,-50%)로 중앙 정렬되므로 scale은 이 변환에 합성한다.
+      keyframes: {
+        // 코어(가장 안쪽, 불투명): 확대 없이 페이드인만.
+        "tire-pulse-core": {
+          "0%": { opacity: "0" },
+          "21.21%": { opacity: "1" },
+          "84.85%": { opacity: "1" },
+          "100%": { opacity: "0" },
+        },
+        // 안쪽 반투명 레이어: 21.21%~42.42% 등장, peak 0.55.
+        "tire-pulse-inner": {
+          "0%, 21.21%": { opacity: "0", transform: "translate(-50%, -50%) scale(0.92)" },
+          "42.42%": { opacity: "0.55", transform: "translate(-50%, -50%) scale(1)" },
+          "84.85%": { opacity: "0.55", transform: "translate(-50%, -50%) scale(1)" },
+          "100%": { opacity: "0", transform: "translate(-50%, -50%) scale(1)" },
+        },
+        // 중간 반투명 레이어: 42.42%~63.64% 등장, peak 0.75.
+        "tire-pulse-mid": {
+          "0%, 42.42%": { opacity: "0", transform: "translate(-50%, -50%) scale(0.92)" },
+          "63.64%": { opacity: "0.75", transform: "translate(-50%, -50%) scale(1)" },
+          "84.85%": { opacity: "0.75", transform: "translate(-50%, -50%) scale(1)" },
+          "100%": { opacity: "0", transform: "translate(-50%, -50%) scale(1)" },
+        },
+        // 바깥 반투명 레이어: 63.64%~84.85% 등장, peak 0.95 (소멸 직전 도달).
+        "tire-pulse-outer": {
+          "0%, 63.64%": { opacity: "0", transform: "translate(-50%, -50%) scale(0.92)" },
+          "84.85%": { opacity: "0.95", transform: "translate(-50%, -50%) scale(1)" },
+          "100%": { opacity: "0", transform: "translate(-50%, -50%) scale(1)" },
+        },
+      },
+      animation: {
+        "tire-pulse-core": "tire-pulse-core 1650ms ease-in-out infinite",
+        "tire-pulse-inner": "tire-pulse-inner 1650ms ease-in-out infinite",
+        "tire-pulse-mid": "tire-pulse-mid 1650ms ease-in-out infinite",
+        "tire-pulse-outer": "tire-pulse-outer 1650ms ease-in-out infinite",
+      },
     },
   },
   plugins: [],
