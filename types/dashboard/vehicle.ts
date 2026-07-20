@@ -127,11 +127,11 @@ export interface VehicleManagementListResponse {
 // ---------------------------------------------------------------------------
 // Issue #15 — `/dashboard/vehicles/[vehicleId]` detail screen.
 //
-// TODO(#15): the tire-detail/tire-trend payloads further below are still
-// provisional (`.claude/handoffs/15-api-specs.md` "Contract status") —
-// re-verify field names/units/envelope shape once the real backend contract
-// for those 2 endpoints is confirmed, and re-validate the 2 adapters in
-// `lib/dashboard/vehicles/` that consume them at that point.
+// TODO(#15): the tire-detail payload further below is still provisional
+// (`.claude/handoffs/15-api-specs.md` "Contract status") — re-verify field
+// names/units/envelope shape once the real backend contract for that endpoint
+// is confirmed. Tire-trend (`GET /api/vehicles/{vehicleId}/tires/trend`) is
+// confirmed against the real OpenAPI `getTireTrend` contract.
 //
 // `VehicleDetailDto`/`VehicleDetailResponse` (the "차량 정보" panel),
 // `CurrentRental`/`CurrentRentalResponse` (the "예약 내역" panel),
@@ -268,6 +268,40 @@ export function isTireTrendMetric(value: unknown): value is TireTrendMetric {
     typeof value === "string" &&
     (TIRE_TREND_METRICS as readonly string[]).includes(value)
   );
+}
+
+/** Wire field on each tire for a given UI metric (`getTireTrend`). */
+export type TireTrendSeriesKey =
+  | "pressure"
+  | "temperature"
+  | "wheelAlignment"
+  | "wearLevel";
+
+export const TIRE_TREND_METRIC_SERIES: Record<TireTrendMetric, TireTrendSeriesKey> = {
+  PRESSURE: "pressure",
+  TEMPERATURE: "temperature",
+  ALIGNMENT: "wheelAlignment",
+  WEAR: "wearLevel",
+};
+
+/** One daily average point on a per-tire metric series (`DailyPoint` in OpenAPI). */
+export interface TireTrendDailyPoint {
+  date: string; // "YYYY-MM-DD"
+  value: number | null;
+}
+
+/**
+ * One tire's trend payload from `GET /api/vehicles/{vehicleId}/tires/trend`
+ * (`TireTrend` in OpenAPI). All four metric series are returned together;
+ * the UI picks one series client-side via {@link TireTrendMetric}.
+ */
+export interface TireTrendTire {
+  tireId: string;
+  position: WheelPosition;
+  pressure: TireTrendDailyPoint[];
+  temperature: TireTrendDailyPoint[];
+  wheelAlignment: TireTrendDailyPoint[];
+  wearLevel: TireTrendDailyPoint[];
 }
 
 /** One point on the 4-line (FL/FR/RL/RR) tire trend chart for a single metric. */
@@ -411,11 +445,14 @@ export interface VehicleTireDetailResponse {
   };
 }
 
+/**
+ * `GET /api/vehicles/{vehicleId}/tires/trend?graphDays=` envelope
+ * (`ApiResponseTireTrendResponse` / `TireTrendResponse` in OpenAPI).
+ */
 export interface VehicleTireTrendResponse {
   statusCode: number;
   error: string | null;
   content: {
-    metric: TireTrendMetric;
-    points: TireTrendPoint[];
+    tires: TireTrendTire[];
   };
 }

@@ -1,4 +1,4 @@
-import type { TireTrendMetric, VehicleListFilters } from "@/types/dashboard/vehicle";
+import type { VehicleListFilters } from "@/types/dashboard/vehicle";
 
 /**
  * Query key factory for the `/dashboard/vehicles` list (React Query v5). No
@@ -10,6 +10,9 @@ import type { TireTrendMetric, VehicleListFilters } from "@/types/dashboard/vehi
  * `list` above is unchanged. `currentRental` (issue #42, additive) keys the
  * separate `/current-rental` endpoint — distinct from `detail` since the two
  * are now independent queries against independent endpoints.
+ *
+ * `tireTrend` is keyed by `vehicleId` only — the real `getTireTrend` payload
+ * returns all metrics together; the metric toggle filters client-side.
  */
 export const vehiclesQueryKeys = {
   all: ["dashboard", "vehicles"] as const,
@@ -29,6 +32,6 @@ export const vehiclesQueryKeys = {
     [...vehiclesQueryKeys.all, "usageHistory", vehicleId, page] as const,
   tireDetail: (vehicleId: string) =>
     [...vehiclesQueryKeys.all, "tireDetail", vehicleId] as const,
-  tireTrend: (vehicleId: string, metric: TireTrendMetric) =>
-    [...vehiclesQueryKeys.all, "tireTrend", vehicleId, metric] as const,
+  tireTrend: (vehicleId: string) =>
+    [...vehiclesQueryKeys.all, "tireTrend", vehicleId] as const,
 };

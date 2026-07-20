@@ -2,15 +2,10 @@ import { delay, http, HttpResponse } from "msw";
 
 import type {
   TireStatus,
-  TireTrendMetric,
   VehicleManagementListResponse,
   VehicleManagementStatus,
 } from "@/types/dashboard/vehicle";
-import {
-  isTireStatus,
-  isTireTrendMetric,
-  isVehicleManagementStatus,
-} from "@/types/dashboard/vehicle";
+import { isTireStatus, isVehicleManagementStatus } from "@/types/dashboard/vehicle";
 import { VEHICLES_ENDPOINT_PATH } from "@/lib/dashboard/vehicles/api";
 import { VEHICLE_DETAIL_ENDPOINT_PATH } from "@/lib/dashboard/vehicles/detail-api";
 import {
@@ -18,6 +13,7 @@ import {
   VEHICLE_RENTAL_HISTORY_PAGE_SIZE,
 } from "@/lib/dashboard/vehicles/usage-history-api";
 import { VEHICLE_CURRENT_RENTAL_ENDPOINT_PATH_SUFFIX } from "@/lib/dashboard/vehicles/current-rental-api";
+import { VEHICLE_TIRE_TREND_ENDPOINT_PATH } from "@/lib/dashboard/vehicles/tire-trend-api";
 import {
   filterVehicleFixture,
   toCurrentRentalResponse,
@@ -98,7 +94,7 @@ const VEHICLE_CURRENT_RENTAL_PATH = `${VEHICLE_DETAIL_ENDPOINT_PATH}/:vehicleId$
 const VEHICLE_ALERT_HISTORY_PATH = `${VEHICLE_DETAIL_ENDPOINT_PATH}/:vehicleId/alerts`;
 const VEHICLE_RENTAL_HISTORY_PATH = `${VEHICLE_DETAIL_ENDPOINT_PATH}/:vehicleId${VEHICLE_RENTAL_HISTORY_ENDPOINT_PATH_SUFFIX}`;
 const VEHICLE_TIRE_DETAIL_PATH = `${VEHICLE_DETAIL_ENDPOINT_PATH}/:vehicleId/tires`;
-const VEHICLE_TIRE_TREND_PATH = `${VEHICLE_DETAIL_ENDPOINT_PATH}/:vehicleId/tires/trend`;
+const VEHICLE_TIRE_TREND_PATH = `${VEHICLE_TIRE_TREND_ENDPOINT_PATH}/:vehicleId/tires/trend`;
 
 /**
  * success: looks up `params.vehicleId` in the fixture map (`vehicle-mgmt-001`/
@@ -239,14 +235,7 @@ export const vehicleTireDetailErrorHandler = http.get(VEHICLE_TIRE_DETAIL_PATH, 
 
 export const vehicleTireTrendNormalHandler = http.get(
   VEHICLE_TIRE_TREND_PATH,
-  ({ request, params }) => {
-    const { searchParams } = new URL(request.url);
-    const metricParam = searchParams.get("metric");
-    const metric: TireTrendMetric = isTireTrendMetric(metricParam) ? metricParam : "PRESSURE";
-    return HttpResponse.json(
-      toVehicleTireTrendResponse(params.vehicleId as string, metric),
-    );
-  },
+  ({ params }) => HttpResponse.json(toVehicleTireTrendResponse(params.vehicleId as string)),
 );
 
 export const vehicleTireTrendErrorHandler = http.get(VEHICLE_TIRE_TREND_PATH, () =>

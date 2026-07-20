@@ -43,6 +43,22 @@ export function formatVehicleDateLabel(iso: string | null): string {
 }
 
 /**
+ * Compact `M.D` axis label for the tire trend chart (Figma node 1:14009,
+ * e.g. `7.12`). Accepts wire `YYYY-MM-DD` or any Date-parsable string; uses
+ * UTC getters so CI/local timezone cannot shift the calendar day.
+ */
+export function formatTireTrendDateLabel(iso: string | null): string {
+  if (!iso) return NO_VALUE_PLACEHOLDER;
+
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return NO_VALUE_PLACEHOLDER;
+
+  const month = date.getUTCMonth() + 1;
+  const day = date.getUTCDate();
+  return `${month}.${day}`;
+}
+
+/**
  * `YY.MM.DD` display format for the `/dashboard/vehicles` list table only
  * (issue #33, user-confirmed override of the CLAUDE.md §4 default
  * `YYYY.MM.DD` for this one screen). {@link formatVehicleDateLabel}
