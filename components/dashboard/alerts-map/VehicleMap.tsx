@@ -41,19 +41,23 @@ function vehicleIdsKey(locations: LiveLocation[]): string {
  *
  * Markers come from `getLiveLocations` filtered by alert `vehicleId`s. Selection
  * is by `vehicleId` (not alert id): panTo + larger blue pin.
+ * `focusNonce` bumps on every alert click (including the same vehicle) so the
+ * map re-centers without following GPS every 2s (Decision A).
  */
 export function VehicleMap({
   locations,
   selectedVehicleId,
+  focusNonce,
 }: {
   locations: LiveLocation[];
   selectedVehicleId: string | null;
+  focusNonce: number;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<KakaoMap | null>(null);
   const markersRef = useRef<Map<string, KakaoMarker>>(new Map());
   const fittedIdsKeyRef = useRef<string>("");
-  const lastPannedVehicleIdRef = useRef<string | null>(null);
+  const lastFocusNonceRef = useRef(0);
   // Always start as `loading` so SSR HTML matches the client's first paint.
   // Reading `kakaoMapAppKey` in useState can disagree across realms and cause
   // hydration mismatch (fallback vs empty map container).
@@ -90,7 +94,8 @@ export function VehicleMap({
     };
   }, []);
 
-  // Sync markers by vehicleId; fit bounds when the vehicle set changes; pan on select.
+  // Sync markers by vehicleId; fit bounds when the vehicle set changes;
+  // pan when focusNonce advances (click / re-click), not on every GPS tick.
   useEffect(() => {
     if (status !== "ready" || !mapRef.current) return;
     const kakaoMaps = window.kakao?.maps;
@@ -140,19 +145,20 @@ export function VehicleMap({
       }
     }
 
-    if (selectedVehicleId) {
+    if (
+      selectedVehicleId &&
+      focusNonce > 0 &&
+      focusNonce !== lastFocusNonceRef.current
+    ) {
       const selected = locations.find(
         (location) => location.vehicleId === selectedVehicleId,
       );
-      // panTo only when the selection changes — not on every 2s GPS tick.
-      if (selected && lastPannedVehicleIdRef.current !== selectedVehicleId) {
-        lastPannedVehicleIdRef.current = selectedVehicleId;
+      if (selected) {
+        lastFocusNonceRef.current = focusNonce;
         map.panTo(new kakaoMaps.LatLng(selected.lat, selected.lng));
       }
-    } else {
-      lastPannedVehicleIdRef.current = null;
     }
-  }, [locations, selectedVehicleId, status]);
+  }, [locations, selectedVehicleId, focusNonce, status]);
 
   useEffect(() => {
     const markers = markersRef.current;
@@ -215,7 +221,7 @@ export function VehicleMap({
         )}
       </div>
 
-      <p aria-live="polite" className="sr-only">
+      <p aria-live="polite" className="sr-only" key={focusNonce}>
         {liveMessage}
       </p>
     </section>

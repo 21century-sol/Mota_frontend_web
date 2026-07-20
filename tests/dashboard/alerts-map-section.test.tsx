@@ -153,6 +153,25 @@ describe("AlertsAndMapSection (SSE + 서버 목록 + GPS)", () => {
     expect(first).toHaveAttribute("aria-pressed", "true");
   });
 
+  it("re-announces map focus when the same selected vehicle row is clicked again (Decision A)", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderSection();
+    await screen.findByText("알림 제목 1");
+
+    const row = screen.getByRole("button", { name: /알림 제목 1/ });
+    await user.click(row);
+    expect(
+      screen.getByText(/선택한 차량|지도 중심이|지도를 사용할 수 없어/),
+    ).toBeInTheDocument();
+
+    await user.click(row);
+    // focusNonce remounts the live region so the same copy is announced again.
+    expect(
+      screen.getByText(/선택한 차량|지도 중심이|지도를 사용할 수 없어/),
+    ).toBeInTheDocument();
+    expect(row).toHaveAttribute("aria-pressed", "true");
+  });
+
   it("requests live-locations for map GPS polling (#64)", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     renderSection();
