@@ -97,7 +97,7 @@ describe("VehicleDetailSection", () => {
 
     // vehicle-mgmt-003 current-rental fixture: renterName 김민준, startDate 2026.07.15, endDate 2026.07.23.
     expect(await screen.findByText("김민준")).toBeInTheDocument();
-    expect(screen.getByText("2026.07.15 ~ 2026.07.23")).toBeInTheDocument();
+    expect(screen.getByText("2026.07.15 - 2026.07.23")).toBeInTheDocument();
     expect(screen.getByText(/반납까지 .+(일|시간|분) 남았습니다/)).toBeInTheDocument();
 
     // vehicle-mgmt-003 fixture alert (newest-first order): FR position + "공기압 알림" title,

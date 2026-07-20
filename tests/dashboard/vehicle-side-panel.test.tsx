@@ -42,6 +42,13 @@ function renderPanel(vehicleId: string) {
 }
 
 describe("VehicleSidePanel", () => {
+  it("renders the two separate card headings '예약 내역' and '알림 이력' (issue #53 AC4)", () => {
+    renderPanel("vehicle-mgmt-001");
+
+    expect(screen.getByRole("heading", { name: "예약 내역" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "알림 이력" })).toBeInTheDocument();
+  });
+
   it("shows an aria-busy loading state before the current-rental response resolves", () => {
     server.use(vehicleCurrentRentalSlowHandler);
     renderPanel("vehicle-mgmt-001");
@@ -68,7 +75,7 @@ describe("VehicleSidePanel", () => {
 
     // vehicle-mgmt-003 fixture: renterName 김민준, endDate = FIXED_NOW + exactly 4일.
     expect(await screen.findByText("김민준")).toBeInTheDocument();
-    expect(screen.getByText("2026.07.15 ~ 2026.07.23")).toBeInTheDocument();
+    expect(screen.getByText("2026.07.15 - 2026.07.23")).toBeInTheDocument();
     expect(screen.getByText("반납까지 4일 남았습니다")).toBeInTheDocument();
   });
 
