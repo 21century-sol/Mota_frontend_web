@@ -2,19 +2,17 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import type { TireTrendMetric } from "@/types/dashboard/vehicle";
 import { fetchVehicleTireTrend, VehicleTireTrendFetchError } from "@/lib/dashboard/vehicles/tire-trend-api";
 import { vehiclesQueryKeys } from "@/lib/dashboard/vehicles/queryKeys";
 
 /**
- * Domain hook for the tire status-trend chart (issue #15, PM AC18). `metric`
- * (the active toggle) is part of the query key, so switching it triggers a
- * fresh fetch instead of client-side filtering a combined dataset.
+ * Domain hook for the tire status-trend chart. Fetches all four metric series
+ * once per vehicle; the metric toggle in `TireStatusTab` filters client-side.
  */
-export function useVehicleTireTrend(vehicleId: string, metric: TireTrendMetric) {
+export function useVehicleTireTrend(vehicleId: string) {
   return useQuery({
-    queryKey: vehiclesQueryKeys.tireTrend(vehicleId, metric),
-    queryFn: ({ signal }) => fetchVehicleTireTrend(vehicleId, metric, signal),
+    queryKey: vehiclesQueryKeys.tireTrend(vehicleId),
+    queryFn: ({ signal }) => fetchVehicleTireTrend(vehicleId, signal),
     staleTime: 60_000,
     gcTime: 5 * 60_000,
     refetchOnWindowFocus: false,

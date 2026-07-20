@@ -6,8 +6,8 @@ import type {
   RentalStatus,
   TireDetail,
   TireStatus,
-  TireTrendMetric,
-  TireTrendPoint,
+  TireTrendDailyPoint,
+  TireTrendTire,
   VehicleAlertHistoryResponse,
   VehicleDetailDto,
   VehicleDetailResponse,
@@ -17,8 +17,10 @@ import type {
   VehicleRentalHistoryResponse,
   VehicleTireDetailResponse,
   VehicleTireTrendResponse,
+  WheelPosition,
 } from "@/types/dashboard/vehicle";
-import { RENTAL_STATUSES } from "@/types/dashboard/vehicle";
+import { RENTAL_STATUSES, WHEEL_POSITIONS } from "@/types/dashboard/vehicle";
+import { TIRE_TREND_GRAPH_DAYS } from "@/lib/dashboard/vehicles/tire-trend-api";
 
 /**
  * Normal scenario (12 vehicles): `status` AVAILABLE×5 / RENTED×4 / REPAIR×3,
@@ -644,59 +646,117 @@ export const tireDetailFixturesById: Record<string, TireDetail[]> = {
   ],
 } satisfies Record<string, TireDetail[]>;
 
+/** Fixed 7-day window ending 2026-07-19 (inclusive) — matches Figma axis sample. */
 const TIRE_TREND_DATES = [
-  "2026-06-01T00:00:00.000Z",
-  "2026-06-08T00:00:00.000Z",
-  "2026-06-15T00:00:00.000Z",
-  "2026-06-22T00:00:00.000Z",
-  "2026-06-29T00:00:00.000Z",
-  "2026-07-06T00:00:00.000Z",
-];
+  "2026-07-13",
+  "2026-07-14",
+  "2026-07-15",
+  "2026-07-16",
+  "2026-07-17",
+  "2026-07-18",
+  "2026-07-19",
+] as const;
 
-const TIRE_TREND_METRIC_BASELINES: Record<
-  TireTrendMetric,
-  { baseline: number; step: number }
-> = {
-  PRESSURE: { baseline: 33, step: -0.4 },
-  TEMPERATURE: { baseline: 22, step: 0.6 },
-  ALIGNMENT: { baseline: 0.1, step: 0.05 },
-  WEAR: { baseline: 12, step: 3 },
-};
-
-function buildTireTrendPoints(metric: TireTrendMetric, wheelOffset: number): TireTrendPoint[] {
-  const { baseline, step } = TIRE_TREND_METRIC_BASELINES[metric];
-  return TIRE_TREND_DATES.map((date, index) => {
-    const value = Math.round((baseline + wheelOffset + step * index) * 10) / 10;
-    return { date, fl: value, fr: value + 0.5, rl: value - 0.3, rr: value + 0.2 };
-  });
+if (TIRE_TREND_DATES.length !== TIRE_TREND_GRAPH_DAYS) {
+  throw new Error(
+    `TIRE_TREND_DATES length (${TIRE_TREND_DATES.length}) must equal TIRE_TREND_GRAPH_DAYS (${TIRE_TREND_GRAPH_DAYS})`,
+  );
 }
 
-function buildTireTrendFixtureSet(wheelOffset: number): Record<TireTrendMetric, TireTrendPoint[]> {
+const TIRE_TREND_TIRE_IDS: Record<WheelPosition, string> = {
+  FL: "b0000001-0000-0000-0000-000000000001",
+  FR: "b0000001-0000-0000-0000-000000000002",
+  RL: "b0000001-0000-0000-0000-000000000003",
+  RR: "b0000001-0000-0000-0000-000000000004",
+};
+
+const TIRE_TREND_METRIC_BASELINES = {
+  pressure: { baseline: 33, step: -0.4 },
+  temperature: { baseline: 22, step: 0.6 },
+  wheelAlignment: { baseline: 0.1, step: 0.05 },
+  wearLevel: { baseline: 12, step: 3 },
+} as const;
+
+const WHEEL_VALUE_OFFSET: Record<WheelPosition, number> = {
+  FL: 0,
+  FR: 0.5,
+  RL: -0.3,
+  RR: 0.2,
+};
+
+function buildDailySeries(
+  baseline: number,
+  step: number,
+  wheelOffset: number,
+  positionOffset: number,
+): TireTrendDailyPoint[] {
+  return TIRE_TREND_DATES.map((date, index) => ({
+    date,
+    value: Math.round((baseline + wheelOffset + positionOffset + step * index) * 100) / 100,
+  }));
+}
+
+function buildNullDailySeries(): TireTrendDailyPoint[] {
+  return TIRE_TREND_DATES.map((date) => ({ date, value: null }));
+}
+
+function buildTireTrendTire(position: WheelPosition, wheelOffset: number): TireTrendTire {
+  const positionOffset = WHEEL_VALUE_OFFSET[position];
   return {
-    PRESSURE: buildTireTrendPoints("PRESSURE", wheelOffset),
-    TEMPERATURE: buildTireTrendPoints("TEMPERATURE", wheelOffset),
-    ALIGNMENT: buildTireTrendPoints("ALIGNMENT", wheelOffset),
-    WEAR: buildTireTrendPoints("WEAR", wheelOffset),
+    tireId: TIRE_TREND_TIRE_IDS[position],
+    position,
+    pressure: buildDailySeries(
+      TIRE_TREND_METRIC_BASELINES.pressure.baseline,
+      TIRE_TREND_METRIC_BASELINES.pressure.step,
+      wheelOffset,
+      positionOffset,
+    ),
+    temperature: buildDailySeries(
+      TIRE_TREND_METRIC_BASELINES.temperature.baseline,
+      TIRE_TREND_METRIC_BASELINES.temperature.step,
+      wheelOffset,
+      positionOffset,
+    ),
+    wheelAlignment: buildDailySeries(
+      TIRE_TREND_METRIC_BASELINES.wheelAlignment.baseline,
+      TIRE_TREND_METRIC_BASELINES.wheelAlignment.step,
+      wheelOffset,
+      positionOffset * 0.1,
+    ),
+    wearLevel: buildDailySeries(
+      TIRE_TREND_METRIC_BASELINES.wearLevel.baseline,
+      TIRE_TREND_METRIC_BASELINES.wearLevel.step,
+      wheelOffset,
+      positionOffset,
+    ),
   };
 }
 
-/** All-null trend points for vehicle-mgmt-004 (AC16 null-value coverage extended to the chart). */
-function buildAllNullTireTrendFixtureSet(): Record<TireTrendMetric, TireTrendPoint[]> {
-  const nullPoints: TireTrendPoint[] = TIRE_TREND_DATES.map((date) => ({
-    date,
-    fl: null,
-    fr: null,
-    rl: null,
-    rr: null,
-  }));
-  return { PRESSURE: nullPoints, TEMPERATURE: nullPoints, ALIGNMENT: nullPoints, WEAR: nullPoints };
+function buildAllNullTireTrendTire(position: WheelPosition): TireTrendTire {
+  const nullSeries = buildNullDailySeries();
+  return {
+    tireId: TIRE_TREND_TIRE_IDS[position],
+    position,
+    pressure: nullSeries,
+    temperature: nullSeries,
+    wheelAlignment: nullSeries,
+    wearLevel: nullSeries,
+  };
 }
 
-export const tireTrendFixturesById: Record<string, Record<TireTrendMetric, TireTrendPoint[]>> = {
-  "vehicle-mgmt-001": buildTireTrendFixtureSet(0),
-  "vehicle-mgmt-003": buildTireTrendFixtureSet(4),
-  "vehicle-mgmt-004": buildAllNullTireTrendFixtureSet(),
-  "vehicle-mgmt-007": buildTireTrendFixtureSet(2),
+function buildTireTrendFixture(wheelOffset: number): TireTrendTire[] {
+  return WHEEL_POSITIONS.map((position) => buildTireTrendTire(position, wheelOffset));
+}
+
+function buildAllNullTireTrendFixture(): TireTrendTire[] {
+  return WHEEL_POSITIONS.map((position) => buildAllNullTireTrendTire(position));
+}
+
+export const tireTrendFixturesById: Record<string, TireTrendTire[]> = {
+  "vehicle-mgmt-001": buildTireTrendFixture(0),
+  "vehicle-mgmt-003": buildTireTrendFixture(4),
+  "vehicle-mgmt-004": buildAllNullTireTrendFixture(),
+  "vehicle-mgmt-007": buildTireTrendFixture(2),
 };
 
 export function toVehicleDetailResponse(vehicleId: string): VehicleDetailResponse | null {
@@ -766,10 +826,12 @@ export function toVehicleTireDetailResponse(vehicleId: string): VehicleTireDetai
   };
 }
 
-export function toVehicleTireTrendResponse(
-  vehicleId: string,
-  metric: TireTrendMetric,
-): VehicleTireTrendResponse {
-  const set = tireTrendFixturesById[vehicleId] ?? tireTrendFixturesById["vehicle-mgmt-001"];
-  return { statusCode: 200, error: null, content: { metric, points: set[metric] } };
+export function toVehicleTireTrendResponse(vehicleId: string): VehicleTireTrendResponse {
+  return {
+    statusCode: 200,
+    error: null,
+    content: {
+      tires: tireTrendFixturesById[vehicleId] ?? tireTrendFixturesById["vehicle-mgmt-001"],
+    },
+  };
 }

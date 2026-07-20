@@ -50,6 +50,7 @@ describe("TireStatusTab", () => {
     renderTab("vehicle-mgmt-001");
 
     await screen.findByText("전좌", { selector: "p" });
+    expect(await screen.findByRole("heading", { name: "타이어 상태 추이" })).toBeInTheDocument();
 
     const pressureButton = screen.getByRole("button", { name: "공기압" });
     const temperatureButton = screen.getByRole("button", { name: "온도" });
@@ -60,5 +61,14 @@ describe("TireStatusTab", () => {
 
     expect(temperatureButton).toHaveAttribute("aria-pressed", "true");
     expect(pressureButton).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("shows empty trend copy when all metric values are null", async () => {
+    server.use(vehicleTireDetailNormalHandler, vehicleTireTrendNormalHandler);
+    renderTab("vehicle-mgmt-004");
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "표시할 상태 추이 데이터가 없습니다.",
+    );
   });
 });
