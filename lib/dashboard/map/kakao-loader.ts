@@ -24,15 +24,21 @@ export interface KakaoMarker {
   setImage(image: KakaoMarkerImage): void;
 }
 
+export interface KakaoLatLngBounds {
+  extend(latlng: KakaoLatLng): void;
+}
+
 export interface KakaoMap {
   setCenter(position: KakaoLatLng): void;
   panTo(position: KakaoLatLng): void;
   setLevel(level: number): void;
+  setBounds(bounds: KakaoLatLngBounds): void;
 }
 
 export interface KakaoMapsNamespace {
   load(callback: () => void): void;
   LatLng: new (lat: number, lng: number) => KakaoLatLng;
+  LatLngBounds: new () => KakaoLatLngBounds;
   Map: new (
     container: HTMLElement,
     options: { center: KakaoLatLng; level?: number },

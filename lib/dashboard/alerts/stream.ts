@@ -127,6 +127,18 @@ export function parseAlertEvent(
 }
 
 /**
+ * Vitest jsdom AbortSignal vs Node undici 이중 realm 우회.
+ * `lib/dashboard/summary/api.ts`와 동일. TODO(#22): tests/setup 정합화 후 제거.
+ */
+function isAbortSignalBrandMismatch(cause: unknown): boolean {
+  return (
+    cause instanceof TypeError &&
+    cause.message.includes("AbortSignal") &&
+    cause.message.includes("signal")
+  );
+}
+
+/**
  * 알림 목록 한 페이지를 조회한다. 응답 봉투는 `{content:{content:[...],page,...}}`.
  * 손상된 행은 걸러내고 유효한 것만 매핑한다.
  */
@@ -137,7 +149,17 @@ export async function fetchAlertPage(
   now: Date = new Date(),
 ): Promise<AlertPage> {
   const url = `${dashboardClientEnv.apiBase}${ALERTS_LIST_PATH}?page=${pageParam}&size=${size}`;
-  const response = await fetch(url, { signal });
+  let response: Response;
+  try {
+    response = await fetch(url, { signal });
+  } catch (cause) {
+    if (signal?.aborted) throw cause;
+    if (signal && isAbortSignalBrandMismatch(cause)) {
+      response = await fetch(url);
+    } else {
+      throw cause;
+    }
+  }
   if (!response.ok) {
     throw new Error(`알림 목록을 불러오지 못했습니다 (HTTP ${response.status}).`);
   }
