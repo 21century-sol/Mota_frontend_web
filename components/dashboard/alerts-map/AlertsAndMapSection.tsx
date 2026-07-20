@@ -1,78 +1,27 @@
 "use client";
 
-import { useState } from "react";
-
-import { AlertsFetchError } from "@/lib/dashboard/alerts/api";
-import { useAlerts } from "@/hooks/dashboard/useAlerts";
-import { AlertsList } from "@/components/dashboard/alerts-map/AlertsList";
-import { AlertsListSkeleton } from "@/components/dashboard/alerts-map/AlertsListSkeleton";
 import { VehicleMap } from "@/components/dashboard/alerts-map/VehicleMap";
+import { LiveAlertsFeed } from "@/components/dashboard/alerts-map/LiveAlertsFeed";
 
 /**
- * `/dashboard` real-time alerts + vehicle map section (issue #12, Figma "Map and
- * Alerts Container" node 2377:23755). Client boundary is required for the
- * `useAlerts` React Query hook and the `selectedAlertId` selection state (PM
- * Safe Assumption A1, `.claude/handoffs/12-pm-breakdown.md`: kept as local
- * `useState`, not URL state — selection is a transient UI concern).
+ * `/dashboard` 실시간 알림 + 차량 지도 섹션 (issue #12, Figma "Map and Alerts
+ * Container" node 2377:23755).
  *
- * Owns loading(skeleton)/empty/error+retry branching for the alerts card (same
- * split as `SummaryCardsSection`, issue #11); `AlertsList` only renders once
- * alerts are known to be a non-empty array.
+ * 알림은 SSE(`GET /api/dashboard/alerts/subscribe`)로 실시간 수신한다
+ * (`LiveAlertsFeed`). 이전의 REST 1회성 fetch(`useAlerts`) + 목록/스켈레톤/에러
+ * 재시도/선택 UI는 대응하는 백엔드 목록 GET 엔드포인트가 없어 항상 에러 상태였고,
+ * 실시간 요구(앱 POST → 서버 push)와도 맞지 않아 SSE 피드로 대체했다.
+ *
+ * 지도(`VehicleMap`)는 좌표 기반 마커를 그리지만, SSE payload(`AlertResponse`)에는
+ * 좌표가 없어 현재 마커 연동 대상이 아니다 — 빈 목록을 넘겨 지도는 fallback/빈
+ * 상태로 둔다. 지도 마커 연동이 필요하면 백엔드 payload에 좌표 보강이 선행되어야
+ * 한다.
  */
 export function AlertsAndMapSection() {
-  const query = useAlerts();
-  const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
-
-  const alerts = query.data ?? [];
-
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start">
-      <VehicleMap alerts={alerts} selectedAlertId={selectedAlertId} />
-
-      <section
-        aria-labelledby="dashboard-alerts-heading"
-        className="flex flex-col rounded-dashboard-card bg-white p-6"
-      >
-        <h2
-          id="dashboard-alerts-heading"
-          className="m-0 text-lg font-normal tracking-[-0.45px] text-black"
-        >
-          실시간 알림
-        </h2>
-
-        <div className="mt-4" aria-busy={query.isPending}>
-          {query.isError ? (
-            <div role="alert" className="flex flex-col items-start gap-3 py-4">
-              <p className="m-0 text-sm font-medium text-dashboard-text-primary">
-                {query.error instanceof AlertsFetchError
-                  ? query.error.userMessage
-                  : "알림 정보를 불러오지 못했습니다."}
-              </p>
-              <button
-                type="button"
-                onClick={() => query.refetch()}
-                disabled={query.isFetching}
-                aria-busy={query.isFetching}
-                className="rounded-full bg-dashboard-sidebar px-4 py-2 text-sm font-medium text-white outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-dashboard-sidebar focus-visible:ring-offset-2 disabled:opacity-60"
-              >
-                {query.isFetching ? "다시 시도하는 중..." : "다시 시도"}
-              </button>
-            </div>
-          ) : query.isPending ? (
-            <AlertsListSkeleton />
-          ) : alerts.length === 0 ? (
-            <p className="m-0 py-6 text-center text-sm text-dashboard-text-muted">
-              현재 알림이 없습니다.
-            </p>
-          ) : (
-            <AlertsList
-              alerts={alerts}
-              selectedAlertId={selectedAlertId}
-              onSelectAlert={setSelectedAlertId}
-            />
-          )}
-        </div>
-      </section>
+      <VehicleMap alerts={[]} selectedAlertId={null} />
+      <LiveAlertsFeed />
     </div>
   );
 }

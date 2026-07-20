@@ -1,33 +1,59 @@
 import { delay, http, HttpResponse } from "msw";
 
-import type { AlertDto } from "@/types/dashboard/alerts";
-import { ALERTS_ENDPOINT_PATH } from "@/lib/dashboard/alerts/api";
+import { ALERTS_LIST_PATH } from "@/lib/dashboard/alerts/stream";
 import {
-  alertsEmptyFixture,
-  alertsNormalFixture,
+  alertsFixtureRows,
+  type AlertResponseFixture,
 } from "@/lib/dashboard/msw/fixtures/alerts";
 
-/** success: 3 DANGER + 2 CAUTION alerts (AC1). */
-export const alertsNormalHandler = http.get(ALERTS_ENDPOINT_PATH, () =>
-  HttpResponse.json<AlertDto[]>(alertsNormalFixture),
+/** 백엔드 `ApiResponse<AlertPageResponse>` 봉투를 페이지 파라미터에 맞춰 만든다. */
+function pageEnvelope(rows: AlertResponseFixture[], page: number, size: number) {
+  const start = page * size;
+  const content = rows.slice(start, start + size);
+  return {
+    statusCode: 200,
+    error: null,
+    content: {
+      content,
+      page,
+      size,
+      totalPages: Math.ceil(rows.length / size),
+      totalElements: rows.length,
+    },
+  };
+}
+
+function readPageParams(request: Request) {
+  const url = new URL(request.url);
+  return {
+    page: Number(url.searchParams.get("page") ?? "0"),
+    size: Number(url.searchParams.get("size") ?? "20"),
+  };
+}
+
+/** success: 25건을 페이지네이션(무한 스크롤 2페이지). */
+export const alertsNormalHandler = http.get(ALERTS_LIST_PATH, ({ request }) => {
+  const { page, size } = readPageParams(request);
+  return HttpResponse.json(pageEnvelope(alertsFixtureRows, page, size));
+});
+
+/** success: 0건(빈 상태). */
+export const alertsEmptyHandler = http.get(ALERTS_LIST_PATH, ({ request }) => {
+  const { size } = readPageParams(request);
+  return HttpResponse.json(pageEnvelope([], 0, size));
+});
+
+/** server error: 500(에러 + 재시도). */
+export const alertsErrorHandler = http.get(ALERTS_LIST_PATH, () =>
+  HttpResponse.json(
+    { statusCode: 500, error: "Internal Server Error", content: null },
+    { status: 500 },
+  ),
 );
 
-/** success: 0 alerts (AC3). */
-export const alertsEmptyHandler = http.get(ALERTS_ENDPOINT_PATH, () =>
-  HttpResponse.json<AlertDto[]>(alertsEmptyFixture),
-);
-
-/** server error: 500 (AC4 — error message + retry). */
-export const alertsErrorHandler = http.get(ALERTS_ENDPOINT_PATH, () =>
-  HttpResponse.json({ message: "Internal Server Error" }, { status: 500 }),
-);
-
-/**
- * Optional slow scenario. Loading is expressed via `delay()` rather than a
- * distinct handler "state" so tests can assert on the skeleton (AC2) before
- * the response resolves.
- */
-export const alertsSlowHandler = http.get(ALERTS_ENDPOINT_PATH, async () => {
+/** 느린 응답(로딩 상태 검증용). */
+export const alertsSlowHandler = http.get(ALERTS_LIST_PATH, async ({ request }) => {
   await delay(2000);
-  return HttpResponse.json<AlertDto[]>(alertsNormalFixture);
+  const { page, size } = readPageParams(request);
+  return HttpResponse.json(pageEnvelope(alertsFixtureRows, page, size));
 });
