@@ -54,13 +54,17 @@ export function VehicleMap({
   const markersRef = useRef<Map<string, KakaoMarker>>(new Map());
   const fittedIdsKeyRef = useRef<string>("");
   const lastPannedVehicleIdRef = useRef<string | null>(null);
-  const [status, setStatus] = useState<MapStatus>(
-    dashboardClientEnv.kakaoMapAppKey ? "loading" : "unavailable",
-  );
+  // Always start as `loading` so SSR HTML matches the client's first paint.
+  // Reading `kakaoMapAppKey` in useState can disagree across realms and cause
+  // hydration mismatch (fallback vs empty map container).
+  const [status, setStatus] = useState<MapStatus>("loading");
 
   useEffect(() => {
     const appKey = dashboardClientEnv.kakaoMapAppKey;
-    if (!appKey || !containerRef.current) return;
+    if (!appKey || !containerRef.current) {
+      setStatus("unavailable");
+      return;
+    }
 
     let cancelled = false;
 
@@ -84,8 +88,6 @@ export function VehicleMap({
     return () => {
       cancelled = true;
     };
-    // Intentionally runs once: the app key does not change at runtime.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Sync markers by vehicleId; fit bounds when the vehicle set changes; pan on select.

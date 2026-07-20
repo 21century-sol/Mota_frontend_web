@@ -25,7 +25,6 @@ export function AlertsAndMapSection() {
     isLoading,
     isError,
     refetch,
-    isFetching,
   } = useDashboardAlerts();
 
   const { locations } = useLiveLocations(vehicleIds);
@@ -49,7 +48,6 @@ export function AlertsAndMapSection() {
         isFetchingNextPage={isFetchingNextPage}
         isLoading={isLoading}
         isError={isError}
-        isFetching={isFetching}
         refetch={refetch}
       />
     </div>

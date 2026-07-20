@@ -23,7 +23,6 @@ export type LiveAlertsFeedProps = {
   isFetchingNextPage: boolean;
   isLoading: boolean;
   isError: boolean;
-  isFetching: boolean;
   refetch: () => void;
 };
 
@@ -41,7 +40,6 @@ export function LiveAlertsFeed({
   isFetchingNextPage,
   isLoading,
   isError,
-  isFetching,
   refetch,
 }: LiveAlertsFeedProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -83,7 +81,7 @@ export function LiveAlertsFeed({
         onScroll={maybeLoadMore}
         className="mt-4 h-[320px] overflow-y-auto [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#99a1ab] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1"
         aria-live="polite"
-        aria-busy={isFetching}
+        aria-busy={isLoading}
       >
         {isInitialLoading ? (
           <p className="m-0 flex h-full items-center justify-center px-6 py-10 text-center text-sm text-dashboard-text-muted">
