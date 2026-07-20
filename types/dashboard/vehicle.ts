@@ -436,13 +436,29 @@ export interface VehicleRentalHistoryResponse {
   };
 }
 
+/**
+ * 실제 백엔드 `GET /api/vehicles/{id}/tires` 한 바퀴 응답(`TireResponse`). `content`는
+ * 이 DTO 4개의 배열이다(봉투 안에 별도 `tires` 필드 없음). `status`는 앱이 저장한 바퀴별
+ * 종합 상태이며, 구버전 백엔드 호환을 위해 파서에서는 누락 시 NORMAL로 처리한다.
+ * `expectedReplacementKm`은 마모도 기반 잔여 km((100-wear)/100×40000).
+ */
+export interface TireDetailBackendDto {
+  tireId?: string;
+  position: WheelPosition;
+  status: TireStatus;
+  pressure: number | null;
+  temperature: number | null;
+  alignment: number | null;
+  wearLevel: number | null;
+  friction?: number | null;
+  expectedReplacementKm?: number | null;
+}
+
 /** Always exactly 4 entries (one per {@link WheelPosition}), PM Scope. */
 export interface VehicleTireDetailResponse {
   statusCode: number;
   error: string | null;
-  content: {
-    tires: TireDetail[];
-  };
+  content: TireDetailBackendDto[];
 }
 
 /**
