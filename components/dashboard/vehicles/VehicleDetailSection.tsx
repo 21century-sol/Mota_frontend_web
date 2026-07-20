@@ -80,8 +80,6 @@ export function VehicleDetailSection({
               vehicleId={vehicleId}
               activeTab={tab}
               page={page}
-              vehiclePhotoUrl={query.data.imageUrls[0]}
-              vehicleModel={query.data.model}
             />
             <VehicleSidePanel vehicleId={vehicleId} />
           </div>

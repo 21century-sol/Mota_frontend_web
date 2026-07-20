@@ -1,4 +1,4 @@
-import type { TireDetail } from "@/types/dashboard/vehicle";
+import type { TireDetail, TireStatus, WheelPosition } from "@/types/dashboard/vehicle";
 import { isTireStatus, isWheelPosition } from "@/types/dashboard/vehicle";
 import { dashboardClientEnv } from "@/lib/dashboard/env/client";
 
@@ -35,24 +35,72 @@ function isNullableNumber(value: unknown): value is number | null {
   return value === null || (typeof value === "number" && Number.isFinite(value));
 }
 
-function isTireDetail(value: unknown): value is TireDetail {
+/**
+ * 실제 백엔드 `GET /api/vehicles/{id}/tires` 한 바퀴 응답(`TireResponse`):
+ * `{ tireId, position, status, pressure, temperature, alignment, wearLevel, friction, expectedReplacementKm }`.
+ * 프론트 UI 모델(`TireDetail`)로 넘어오며 필드가 매핑된다(아래 `toTireDetail` 참고).
+ */
+interface TireResponseDto {
+  position: WheelPosition;
+  status: TireStatus;
+  pressure: number | null;
+  temperature: number | null;
+  alignment: number | null;
+  wearLevel: number | null;
+  expectedReplacementKm?: number | null;
+}
+
+function isTireResponseDto(value: unknown): value is TireResponseDto {
   if (typeof value !== "object" || value === null) return false;
-  const candidate = value as Record<string, unknown>;
+  const c = value as Record<string, unknown>;
   return (
-    isWheelPosition(candidate.position) &&
-    isTireStatus(candidate.status) &&
-    isNullableNumber(candidate.expectedReplacementAt) &&
-    isNullableNumber(candidate.pressureKpa) &&
-    isNullableNumber(candidate.temperatureCelsius) &&
-    isNullableNumber(candidate.alignmentDeg) &&
-    isNullableNumber(candidate.treadDepthMm)
+    isWheelPosition(c.position) &&
+    // status는 앱이 저장한 바퀴별 상태. 백엔드가 status를 아직 안 주는(구버전) 경우를 대비해
+    // 누락 시 NORMAL로 관대하게 처리하되, 값이 있으면 유효한 enum이어야 한다.
+    (c.status === undefined || isTireStatus(c.status)) &&
+    isNullableNumber(c.pressure) &&
+    isNullableNumber(c.temperature) &&
+    isNullableNumber(c.alignment) &&
+    isNullableNumber(c.wearLevel) &&
+    (c.expectedReplacementKm === undefined || isNullableNumber(c.expectedReplacementKm))
   );
+}
+
+/** 백엔드 `TireResponse.RATED_LIFE_KM`과 동일한 마모→잔여 km 정격 수명. */
+export const TIRE_RATED_LIFE_KM = 40_000;
+
+/** 백엔드와 동일한 마모→잔여 km 식. MSW·구버전 응답 폴백용. */
+export function expectedReplacementKmFromWear(wearLevel: number | null | undefined): number | null {
+  if (wearLevel === null || wearLevel === undefined) return null;
+  const wear = Math.max(0, Math.min(100, wearLevel));
+  return Math.round(((100 - wear) / 100) * TIRE_RATED_LIFE_KM);
+}
+
+/**
+ * 백엔드 DTO → UI 모델 매핑. 백엔드는 `wearLevel`(마모도 %)을 주며 UI의 `treadDepthMm`
+ * 슬롯이 이미 % 값을 표시한다(`formatWearLabel`). `expectedReplacementKm`은 마모 기반
+ * 잔여 거리(km)이며 UI의 `expectedReplacementAt`으로 매핑한다.
+ */
+function toTireDetail(dto: TireResponseDto): TireDetail {
+  return {
+    position: dto.position,
+    status: dto.status ?? "NORMAL",
+    pressureKpa: dto.pressure,
+    temperatureCelsius: dto.temperature,
+    alignmentDeg: dto.alignment,
+    treadDepthMm: dto.wearLevel,
+    expectedReplacementAt:
+      dto.expectedReplacementKm !== undefined
+        ? dto.expectedReplacementKm
+        : expectedReplacementKmFromWear(dto.wearLevel),
+  };
 }
 
 /**
  * unknown → UI model list (PM AC16/AC17). Always exactly 4 entries (one per
  * wheel position, PM Scope) — any other count, a duplicate position or an
  * invalid entry is a contract mismatch, not a dropped/padded row.
+ * 봉투는 `{ content: TireResponse[], error, statusCode }` (content가 배열 그 자체).
  */
 export function toVehicleTireDetails(raw: unknown): TireDetail[] {
   if (typeof raw !== "object" || raw === null || !("content" in raw)) {
@@ -61,18 +109,14 @@ export function toVehicleTireDetails(raw: unknown): TireDetail[] {
     );
   }
   const content = (raw as Record<string, unknown>).content;
-  if (typeof content !== "object" || content === null || !("tires" in content)) {
-    throw new VehicleTireDetailContractMismatchError("`content` is missing the `tires` field");
-  }
-  const tires = (content as Record<string, unknown>).tires;
-  if (!Array.isArray(tires)) {
-    throw new VehicleTireDetailContractMismatchError("`content.tires` is not an array");
+  if (!Array.isArray(content)) {
+    throw new VehicleTireDetailContractMismatchError("`content` is not an array");
   }
 
   const seenPositions = new Set<string>();
   const items: TireDetail[] = [];
-  for (const entry of tires) {
-    if (!isTireDetail(entry)) {
+  for (const entry of content) {
+    if (!isTireResponseDto(entry)) {
       throw new VehicleTireDetailContractMismatchError(
         "array entry is missing a required field or has an invalid enum value",
       );
@@ -81,7 +125,7 @@ export function toVehicleTireDetails(raw: unknown): TireDetail[] {
       throw new VehicleTireDetailContractMismatchError(`duplicate wheel position: ${entry.position}`);
     }
     seenPositions.add(entry.position);
-    items.push(entry);
+    items.push(toTireDetail(entry));
   }
 
   if (items.length !== 4) {
@@ -94,7 +138,7 @@ export function toVehicleTireDetails(raw: unknown): TireDetail[] {
 }
 
 function buildVehicleTireDetailUrl(vehicleId: string): string {
-  return `${dashboardClientEnv.apiBase}/api/dashboard/vehicles/${vehicleId}/tires`;
+  return `${dashboardClientEnv.apiBase}/api/vehicles/${vehicleId}/tires`;
 }
 
 function isAbortSignalBrandMismatch(cause: unknown): boolean {

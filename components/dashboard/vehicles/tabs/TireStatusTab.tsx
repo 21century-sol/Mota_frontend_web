@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, Car } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 
 import type { TireDetail, TireTrendMetric, WheelPosition } from "@/types/dashboard/vehicle";
-import { TIRE_TREND_METRICS, WHEEL_POSITIONS } from "@/types/dashboard/vehicle";
+import { TIRE_TREND_METRICS } from "@/types/dashboard/vehicle";
 import { VehicleTireDetailFetchError } from "@/lib/dashboard/vehicles/tire-detail-api";
 import {
   isTireTrendPointsEmpty,
@@ -24,97 +24,95 @@ import { countTiresNeedingAttention, hasTireNeedingAttention } from "@/lib/dashb
 import { useVehicleTireDetail } from "@/hooks/dashboard/useVehicleTireDetail";
 import { useVehicleTireTrend } from "@/hooks/dashboard/useVehicleTireTrend";
 import { TireTrendChart } from "@/components/dashboard/vehicles/tabs/TireTrendChart";
+import { TirePulse } from "@/components/dashboard/vehicles/TirePulse";
 
-/** Position on the car-image overlay (issue #15 Safe Assumption A3 — exact Figma "Bar Indicator" spec unconfirmed, ui-agent discretion). */
-const OVERLAY_POSITION_STYLE: Record<WheelPosition, string> = {
-  FL: "left-[28%] top-[30%]",
-  FR: "right-[28%] top-[30%]",
-  RL: "left-[28%] bottom-[22%]",
-  RR: "right-[28%] bottom-[22%]",
-};
+/** Figma node 1:13926 탑다운 차량 일러스트 (실사 사진이 아님). */
+const TIRE_CAR_ASSET = "/assets/dashboard/tire-car-topdown.png";
+/** Figma node 1:13929 타이어 휠 오버레이. */
+const TIRE_WHEEL_ASSET = "/assets/dashboard/tire-wheel.png";
 
-const OVERLAY_STATUS_STYLE: Record<TireDetail["status"], string> = {
-  NORMAL: "bg-dashboard-vehicles-label/40",
-  CAUTION: "bg-dashboard-tire-caution motion-safe:animate-ping",
-  WARNING: "bg-dashboard-tire-warning motion-safe:animate-ping",
+/**
+ * Figma node 1:13925 Car Image 기준 바퀴 좌표.
+ * 컨테이너(259×345) 중심 대비 px 오프셋.
+ * FL/FR: top 50%-41.5px, RL/RR: top 50%+88.5px / left ±58px.
+ */
+const DIAGRAM_POSITION_STYLE: Record<WheelPosition, string> = {
+  FL: "left-[calc(50%-58.5px)] top-[calc(50%-41.5px)]",
+  FR: "left-[calc(50%+57.5px)] top-[calc(50%-41.5px)]",
+  RL: "left-[calc(50%-58.5px)] top-[calc(50%+88.5px)]",
+  RR: "left-[calc(50%+57.5px)] top-[calc(50%+88.5px)]",
 };
 
 /**
- * Car-image overlay highlighting the 4 wheel positions (Figma "Car Image
- * Overlay", PM AC17). Highlight color/animation comes from `tire.status`
- * only, never from the raw measurement values
- * (`.claude/handoffs/15-figma-specs.md` "Discovered Mock Inconsistencies").
- * `motion-safe:` keeps the pulse animation off for `prefers-reduced-motion`
- * users; the color itself still conveys the state either way.
+ * 중앙 차량 도식 (Figma node 1:13925).
+ * 차량은 항상 Figma 탑다운 에셋을 쓰고, 바퀴마다 휠 아이콘 + (주의/위험 시) 펄스를 올린다.
+ * 정상 타이어의 Figma 흰 블러 글로우는 밝은 차량 위에서 흰 박스로 보여 생략한다.
  */
-function TireOverlay({
-  tires,
-  vehiclePhotoUrl,
-  vehicleModel,
-}: {
-  tires: TireDetail[];
-  vehiclePhotoUrl: string | undefined;
-  vehicleModel: string;
-}) {
+function TireDiagram({ tires }: { tires: TireDetail[] }) {
   return (
-    <div className="relative h-56 w-full overflow-hidden rounded-2xl bg-dashboard-vehicles-surface">
-      {vehiclePhotoUrl ? (
-        <img
-          src={vehiclePhotoUrl}
-          alt={`${vehicleModel} 타이어 위치도`}
-          className="h-full w-full object-cover"
-        />
-      ) : (
-        <div className="flex h-full w-full items-center justify-center">
-          <Car aria-hidden="true" className="h-10 w-10 text-dashboard-vehicles-label" />
-        </div>
-      )}
+    <div className="relative mx-auto h-[345px] w-[259px] shrink-0">
+      <img
+        src={TIRE_CAR_ASSET}
+        alt="타이어 위치 차량 도식"
+        className="pointer-events-none absolute inset-0 size-full object-contain opacity-80"
+      />
       {tires.map((tire) => (
-        <span
+        <div
           key={tire.position}
-          aria-hidden="true"
-          className={`absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full ${OVERLAY_POSITION_STYLE[tire.position]} ${OVERLAY_STATUS_STYLE[tire.status]}`}
-        />
+          className={`absolute -translate-x-1/2 -translate-y-1/2 ${DIAGRAM_POSITION_STYLE[tire.position]}`}
+        >
+          <div className="relative flex size-[63px] items-center justify-center">
+            {tire.status !== "NORMAL" ? (
+              // Figma 오버레이(~63px)에 맞춰 원본 108px 펄스를 축소한다.
+              <div className="pointer-events-none absolute left-1/2 top-1/2 origin-center -translate-x-1/2 -translate-y-1/2 scale-[0.58]">
+                <TirePulse status={tire.status} />
+              </div>
+            ) : null}
+            <img
+              src={TIRE_WHEEL_ASSET}
+              alt=""
+              aria-hidden="true"
+              className="relative z-10 size-[63px] object-cover"
+            />
+          </div>
+        </div>
       ))}
     </div>
   );
 }
 
+/**
+ * 실시간 센서 카드 (Figma node 1:13961 Front Left Tire Container).
+ * 상태 뱃지/강조 테두리는 카드에 두지 않고, 차량 도식 펄스로만 상태를 표현한다.
+ */
 function TireCard({ tire }: { tire: TireDetail }) {
   return (
-    <div className="rounded-dashboard-tire-card border border-dashboard-vehicles-border p-4 shadow-dashboard-tire-card">
-      <p className="m-0 text-sm font-semibold text-dashboard-vehicles-title">
-        {formatWheelPositionLabel(tire.position)}
-      </p>
-      <p className="m-0 mt-1 text-xs text-dashboard-vehicles-label">
-        예상 교체 시점 {formatExpectedReplacementLabel(tire.expectedReplacementAt)}
-      </p>
-      <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
-        <div>
-          <dt className="m-0 text-dashboard-vehicles-label">공기압</dt>
-          <dd className="m-0 font-medium text-dashboard-vehicles-title">
-            {formatPressureLabel(tire.pressureKpa)}
-          </dd>
+    <div className="w-full max-w-[260px] overflow-hidden rounded-dashboard-tire-card border border-dashboard-vehicles-border bg-white p-4 shadow-dashboard-tire-card">
+      <div className="flex flex-col gap-3 leading-[1.5]">
+        <div className="flex flex-col gap-1">
+          <p className="m-0 text-base font-semibold tracking-[-0.4px] text-dashboard-vehicles-title">
+            {formatWheelPositionLabel(tire.position)}
+          </p>
+          <p className="m-0 text-sm font-medium tracking-[-0.35px] text-dashboard-vehicles-label">
+            예상 교체 시점 {formatExpectedReplacementLabel(tire.expectedReplacementAt)}
+          </p>
         </div>
-        <div>
-          <dt className="m-0 text-dashboard-vehicles-label">온도</dt>
-          <dd className="m-0 font-medium text-dashboard-vehicles-title">
-            {formatTemperatureLabel(tire.temperatureCelsius)}
-          </dd>
-        </div>
-        <div>
-          <dt className="m-0 text-dashboard-vehicles-label">휠 얼라이먼트</dt>
-          <dd className="m-0 font-medium text-dashboard-vehicles-title">
-            {formatAlignmentLabel(tire.alignmentDeg)}
-          </dd>
-        </div>
-        <div>
-          <dt className="m-0 text-dashboard-vehicles-label">마모도</dt>
-          <dd className="m-0 font-medium text-dashboard-vehicles-title">
-            {formatWearLabel(tire.treadDepthMm)}
-          </dd>
-        </div>
-      </dl>
+        <dl className="m-0 flex flex-col gap-1.5 text-sm font-medium tracking-[-0.35px]">
+          {(
+            [
+              ["공기압", formatPressureLabel(tire.pressureKpa)],
+              ["온도", formatTemperatureLabel(tire.temperatureCelsius)],
+              ["휠 얼라이먼트", formatAlignmentLabel(tire.alignmentDeg)],
+              ["마모도", formatWearLabel(tire.treadDepthMm)],
+            ] as const
+          ).map(([label, value]) => (
+            <div key={label} className="flex items-center">
+              <dt className="m-0 w-[100px] shrink-0 text-dashboard-vehicles-label">{label}</dt>
+              <dd className="m-0 min-w-0 flex-1 text-dashboard-vehicles-title">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
     </div>
   );
 }
@@ -125,15 +123,7 @@ function TireCard({ tire }: { tire: TireDetail }) {
  * `useVehicleTireTrend` (chart — one fetch for all metrics; metric toggle
  * filters client-side via `toTireTrendPoints`).
  */
-export function TireStatusTab({
-  vehicleId,
-  vehiclePhotoUrl,
-  vehicleModel,
-}: {
-  vehicleId: string;
-  vehiclePhotoUrl: string | undefined;
-  vehicleModel: string;
-}) {
+export function TireStatusTab({ vehicleId }: { vehicleId: string }) {
   const [metric, setMetric] = useState<TireTrendMetric>("PRESSURE");
   const tireDetailQuery = useVehicleTireDetail(vehicleId);
   const tireTrendQuery = useVehicleTireTrend(vehicleId);
@@ -177,17 +167,32 @@ export function TireStatusTab({
               </div>
             ) : null}
 
-            <TireOverlay
-              tires={tireDetailQuery.data}
-              vehiclePhotoUrl={vehiclePhotoUrl}
-              vehicleModel={vehicleModel}
-            />
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {WHEEL_POSITIONS.map((position) => {
-                const tire = tireDetailQuery.data.find((entry) => entry.position === position);
-                return tire ? <TireCard key={position} tire={tire} /> : null;
-              })}
+            {/* Figma node 1:13920 Detail Container: 제목 + 탑다운 차량 + 좌우 센서 카드 4개.
+                lg 이상은 [FL·RL] | 차량 | [FR·RR] 3열, 좁은 화면은 차량이 위로 오고
+                카드가 아래로 쌓인다. 데이터는 2초 폴링으로 갱신된다. */}
+            <div className="flex flex-col gap-5">
+              <h3 className="m-0 pl-3 text-lg font-semibold tracking-[-0.45px] text-dashboard-text-primary">
+                타이어 상세
+              </h3>
+              <div className="rounded-dashboard-card bg-white px-6 py-6 shadow-dashboard-card">
+                <div className="grid gap-4 lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)_minmax(0,260px)] lg:items-center">
+                  <div className="order-2 flex flex-col items-stretch gap-4 lg:order-1 lg:items-start">
+                    {(["FL", "RL"] as const).map((position) => {
+                      const tire = tireDetailQuery.data.find((entry) => entry.position === position);
+                      return tire ? <TireCard key={position} tire={tire} /> : null;
+                    })}
+                  </div>
+                  <div className="order-1 flex justify-center lg:order-2">
+                    <TireDiagram tires={tireDetailQuery.data} />
+                  </div>
+                  <div className="order-3 flex flex-col items-stretch gap-4 lg:items-end">
+                    {(["FR", "RR"] as const).map((position) => {
+                      const tire = tireDetailQuery.data.find((entry) => entry.position === position);
+                      return tire ? <TireCard key={position} tire={tire} /> : null;
+                    })}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}

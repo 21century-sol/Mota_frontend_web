@@ -24,8 +24,6 @@ function renderTabs(activeTab: "tires" | "usage" | "inspection" | "info" = "tire
         vehicleId="vehicle-mgmt-001"
         activeTab={activeTab}
         page={page}
-        vehiclePhotoUrl={undefined}
-        vehicleModel="아반떼 하이브리드"
       />
     </QueryClientProvider>,
   );

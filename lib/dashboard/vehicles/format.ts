@@ -105,11 +105,12 @@ export function formatVehicleListRefreshedAtLabel(iso: string): string {
 // Issue #15 — vehicle detail screen formatters (additive).
 // ---------------------------------------------------------------------------
 
+/** 타이어 상세 카드 제목 (Figma node 1:13961, 예: `앞 왼쪽 (FL)`). */
 const WHEEL_POSITION_LABELS: Record<WheelPosition, string> = {
-  FL: "전좌",
-  FR: "전우",
-  RL: "후좌",
-  RR: "후우",
+  FL: "앞 왼쪽 (FL)",
+  FR: "앞 오른쪽 (FR)",
+  RL: "뒤 왼쪽 (RL)",
+  RR: "뒤 오른쪽 (RR)",
 };
 
 export function formatWheelPositionLabel(position: WheelPosition): string {
@@ -138,7 +139,8 @@ export function formatExpectedReplacementLabel(km: number | null): string {
 }
 
 export function formatPressureLabel(kpa: number | null): string {
-  return kpa === null ? NO_VALUE_PLACEHOLDER : `${kpa} psi`;
+  // Figma copy: `28psi` (공백 없음, node 1:13973).
+  return kpa === null ? NO_VALUE_PLACEHOLDER : `${kpa}psi`;
 }
 
 export function formatTemperatureLabel(celsius: number | null): string {

@@ -21,6 +21,7 @@ import type {
 } from "@/types/dashboard/vehicle";
 import { RENTAL_STATUSES, WHEEL_POSITIONS } from "@/types/dashboard/vehicle";
 import { TIRE_TREND_GRAPH_DAYS } from "@/lib/dashboard/vehicles/tire-trend-api";
+import { expectedReplacementKmFromWear } from "@/lib/dashboard/vehicles/tire-detail-api";
 
 /**
  * Normal scenario (12 vehicles): `status` AVAILABLE×5 / RENTED×4 / REPAIR×3,
@@ -819,10 +820,22 @@ export function toVehicleRentalHistoryResponse(
 }
 
 export function toVehicleTireDetailResponse(vehicleId: string): VehicleTireDetailResponse {
+  const tires = tireDetailFixturesById[vehicleId] ?? tireDetailFixturesById["vehicle-mgmt-001"];
+  // UI fixture(TireDetail) → 실제 백엔드 봉투(TireResponse 배열)로 변환해 서버를 그대로 흉내낸다.
   return {
     statusCode: 200,
     error: null,
-    content: { tires: tireDetailFixturesById[vehicleId] ?? tireDetailFixturesById["vehicle-mgmt-001"] },
+    content: tires.map((tire) => ({
+      tireId: `tire-${vehicleId}-${tire.position.toLowerCase()}`,
+      position: tire.position,
+      status: tire.status,
+      pressure: tire.pressureKpa,
+      temperature: tire.temperatureCelsius,
+      alignment: tire.alignmentDeg,
+      wearLevel: tire.treadDepthMm,
+      friction: null,
+      expectedReplacementKm: expectedReplacementKmFromWear(tire.treadDepthMm),
+    })),
   };
 }
 
