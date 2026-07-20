@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronRight, MapPinOff } from "lucide-react";
 
-import type { AlertItem } from "@/types/dashboard/alerts";
+import type { LiveLocation } from "@/types/dashboard/live-locations";
 import { dashboardClientEnv } from "@/lib/dashboard/env/client";
 import {
   loadKakaoMaps,
@@ -13,48 +13,62 @@ import {
 
 type MapStatus = "unavailable" | "loading" | "ready" | "error";
 
-// No alert-independent default center is specified by Figma/PM — used only
-// until the SDK loads or before any alert is selected (Seoul City Hall).
-const DEFAULT_CENTER = { lat: 37.5665, lng: 126.978 };
-const DEFAULT_ZOOM_LEVEL = 10;
+// No location-independent default center is specified by Figma — used until the
+// SDK loads or when there are no pins (Jeju approx., matching product map demos).
+const DEFAULT_CENTER = { lat: 33.4996, lng: 126.5312 };
+const DEFAULT_ZOOM_LEVEL = 9;
 
-// Plain colored-circle markers encoded as inline SVG data URIs — no external
-// asset file needed (Non-goal: clustering/custom marker art, issue #12).
-// Selected marker uses the existing `dashboard-chart-accent` color (#5a55f2)
-// and a larger size so the emphasis (Decision Resolved 2026-07-16 #3,
-// `.claude/handoffs/12-figma-specs.md`) does not rely on color alone.
+// Figma 1:12020 / 첨부 에셋: 파란 원형 핀. 선택 시 크기만 키워 강조(색만 의존 금지).
+const MARKER_BLUE = "#5a55f2";
 const NORMAL_MARKER_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><circle cx="10" cy="10" r="7" fill="#0f0f10" stroke="#ffffff" stroke-width="2"/></svg>',
+  `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><circle cx="10" cy="10" r="7" fill="${MARKER_BLUE}"/></svg>`,
 )}`;
 const SELECTED_MARKER_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30"><circle cx="15" cy="15" r="11" fill="#5a55f2" stroke="#ffffff" stroke-width="3"/></svg>',
+  `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30"><circle cx="15" cy="15" r="11" fill="${MARKER_BLUE}" stroke="#ffffff" stroke-width="3"/></svg>`,
 )}`;
 
+function vehicleIdsKey(locations: LiveLocation[]): string {
+  return locations
+    .map((location) => location.vehicleId)
+    .slice()
+    .sort()
+    .join("|");
+}
+
 /**
- * Real-time vehicle map (issue #12). Loads the Kakao Maps SDK when
- * `NEXT_PUBLIC_KAKAO_MAP_APP_KEY` is set and renders a fully supported fallback
- * message otherwise (missing key or SDK load failure) — Decision Resolved
- * 2026-07-16 #1/#2, `.claude/handoffs/12-pm-breakdown.md`. This is not a
- * temporary placeholder: both branches are "done" states for this issue.
+ * Real-time vehicle map (issue #12 + #64). Loads Kakao Maps when
+ * `NEXT_PUBLIC_KAKAO_MAP_APP_KEY` is set; otherwise shows the supported fallback.
+ *
+ * Markers come from `getLiveLocations` filtered by alert `vehicleId`s. Selection
+ * is by `vehicleId` (not alert id): panTo + larger blue pin.
+ * `focusNonce` bumps on every alert click (including the same vehicle) so the
+ * map re-centers without following GPS every 2s (Decision A).
  */
 export function VehicleMap({
-  alerts,
-  selectedAlertId,
+  locations,
+  selectedVehicleId,
+  focusNonce,
 }: {
-  alerts: AlertItem[];
-  selectedAlertId: string | null;
+  locations: LiveLocation[];
+  selectedVehicleId: string | null;
+  focusNonce: number;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<KakaoMap | null>(null);
   const markersRef = useRef<Map<string, KakaoMarker>>(new Map());
-  const [status, setStatus] = useState<MapStatus>(
-    dashboardClientEnv.kakaoMapAppKey ? "loading" : "unavailable",
-  );
+  const fittedIdsKeyRef = useRef<string>("");
+  const lastFocusNonceRef = useRef(0);
+  // Always start as `loading` so SSR HTML matches the client's first paint.
+  // Reading `kakaoMapAppKey` in useState can disagree across realms and cause
+  // hydration mismatch (fallback vs empty map container).
+  const [status, setStatus] = useState<MapStatus>("loading");
 
-  // Load the SDK and create the map instance once.
   useEffect(() => {
     const appKey = dashboardClientEnv.kakaoMapAppKey;
-    if (!appKey || !containerRef.current) return;
+    if (!appKey || !containerRef.current) {
+      setStatus("unavailable");
+      return;
+    }
 
     let cancelled = false;
 
@@ -78,18 +92,17 @@ export function VehicleMap({
     return () => {
       cancelled = true;
     };
-    // Intentionally runs once: the app key does not change at runtime.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Sync one marker per alert, and re-center on the selected alert's location.
+  // Sync markers by vehicleId; fit bounds when the vehicle set changes;
+  // pan when focusNonce advances (click / re-click), not on every GPS tick.
   useEffect(() => {
     if (status !== "ready" || !mapRef.current) return;
     const kakaoMaps = window.kakao?.maps;
     if (!kakaoMaps) return;
 
     const map = mapRef.current;
-    const currentIds = new Set(alerts.map((alert) => alert.id));
+    const currentIds = new Set(locations.map((location) => location.vehicleId));
 
     for (const [id, marker] of markersRef.current) {
       if (!currentIds.has(id)) {
@@ -98,44 +111,55 @@ export function VehicleMap({
       }
     }
 
-    for (const alert of alerts) {
-      const isSelected = alert.id === selectedAlertId;
-      const position = new kakaoMaps.LatLng(
-        alert.location.lat,
-        alert.location.lng,
-      );
+    for (const location of locations) {
+      const isSelected = location.vehicleId === selectedVehicleId;
+      const position = new kakaoMaps.LatLng(location.lat, location.lng);
       const image = new kakaoMaps.MarkerImage(
         isSelected ? SELECTED_MARKER_SVG : NORMAL_MARKER_SVG,
         new kakaoMaps.Size(isSelected ? 30 : 20, isSelected ? 30 : 20),
       );
 
-      const existingMarker = markersRef.current.get(alert.id);
+      const existingMarker = markersRef.current.get(location.vehicleId);
       if (existingMarker) {
         existingMarker.setPosition(position);
         existingMarker.setImage(image);
       } else {
         const marker = new kakaoMaps.Marker({ position, map, image });
-        markersRef.current.set(alert.id, marker);
+        markersRef.current.set(location.vehicleId, marker);
       }
     }
 
-    const selectedAlert = alerts.find((alert) => alert.id === selectedAlertId);
-    if (selectedAlert) {
-      map.panTo(
-        new kakaoMaps.LatLng(
-          selectedAlert.location.lat,
-          selectedAlert.location.lng,
-        ),
-      );
+    const idsKey = vehicleIdsKey(locations);
+    if (locations.length > 0 && idsKey !== fittedIdsKeyRef.current) {
+      fittedIdsKeyRef.current = idsKey;
+      if (locations.length === 1) {
+        const only = locations[0];
+        map.setCenter(new kakaoMaps.LatLng(only.lat, only.lng));
+        map.setLevel(5);
+      } else {
+        const bounds = new kakaoMaps.LatLngBounds();
+        for (const location of locations) {
+          bounds.extend(new kakaoMaps.LatLng(location.lat, location.lng));
+        }
+        map.setBounds(bounds);
+      }
     }
-  }, [alerts, selectedAlertId, status]);
 
-  // Remove all markers on unmount so a re-mounted map (e.g. Fast Refresh) does
-  // not accumulate stale marker instances against a script-level cached SDK.
-  // `markers` is the same `Map` instance `markersRef.current` always points to
-  // (only mutated in place by the sync effect above, never reassigned), so
-  // capturing it here keeps the cleanup working with the up-to-date contents
-  // while satisfying the exhaustive-deps ref-in-cleanup check.
+    if (
+      selectedVehicleId &&
+      focusNonce > 0 &&
+      focusNonce !== lastFocusNonceRef.current
+    ) {
+      const selected = locations.find(
+        (location) => location.vehicleId === selectedVehicleId,
+      );
+      if (selected) {
+        lastFocusNonceRef.current = focusNonce;
+        map.panTo(new kakaoMaps.LatLng(selected.lat, selected.lng));
+      }
+    }
+  }, [locations, selectedVehicleId, focusNonce, status]);
+
   useEffect(() => {
     const markers = markersRef.current;
     return () => {
@@ -146,15 +170,18 @@ export function VehicleMap({
     };
   }, []);
 
-  const selectedAlert = alerts.find((alert) => alert.id === selectedAlertId);
-  // Worded so it stays accurate regardless of map readiness (AC7 requires the
-  // announcement even in the fallback state, since AC6 keeps the list fully
-  // independent of the map — this must never claim a pan happened when it did not).
-  const liveMessage = !selectedAlert
+  const selectedLocation = locations.find(
+    (location) => location.vehicleId === selectedVehicleId,
+  );
+  const liveMessage = !selectedVehicleId
     ? ""
-    : status === "ready"
-      ? `지도 중심이 ${selectedAlert.vehiclePlateNumber} 위치로 이동했습니다.`
-      : `${selectedAlert.vehiclePlateNumber} 선택됨 — 지도를 사용할 수 없어 위치를 표시할 수 없습니다.`;
+    : !selectedLocation
+      ? status === "ready"
+        ? "선택한 차량의 실시간 위치가 없습니다."
+        : "선택한 차량 — 지도를 사용할 수 없어 위치를 표시할 수 없습니다."
+      : status === "ready"
+        ? `지도 중심이 ${selectedLocation.plateNumber} 위치로 이동했습니다.`
+        : `${selectedLocation.plateNumber} 선택됨 — 지도를 사용할 수 없어 위치를 표시할 수 없습니다.`;
 
   return (
     <section
@@ -169,11 +196,6 @@ export function VehicleMap({
           실시간 차량 위치
         </h2>
 
-        {/*
-          "전체"는 정적 텍스트만 렌더링한다 — Figma에 상세 화면 디자인이 없어 클릭
-          인터랙션·href·목적지를 만들지 않는다(`#13` 관례와 동일, PM handoff
-          Non-goals).
-        */}
         <span className="flex items-center gap-0.5 text-[13px] font-medium tracking-[-0.325px] text-dashboard-text-tertiary">
           전체
           <ChevronRight aria-hidden="true" className="h-4 w-4" />
@@ -183,12 +205,15 @@ export function VehicleMap({
       <div className="relative mt-4 min-h-[320px] overflow-hidden rounded-lg">
         {status === "unavailable" || status === "error" ? (
           <div className="flex min-h-[320px] flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-dashboard-border bg-dashboard-surface px-4 text-center">
-            <MapPinOff aria-hidden="true" className="h-8 w-8 text-dashboard-text-tertiary" />
+            <MapPinOff
+              aria-hidden="true"
+              className="h-8 w-8 text-dashboard-text-tertiary"
+            />
             <p className="m-0 text-sm font-medium text-dashboard-text-primary">
               지도를 불러올 수 없습니다
             </p>
             <p className="m-0 max-w-xs text-xs text-dashboard-text-muted">
-              차량 위치는 왼쪽 알림 목록에서 확인해주세요.
+              차량 위치는 오른쪽 알림 목록에서 확인해주세요.
             </p>
           </div>
         ) : (
@@ -196,9 +221,7 @@ export function VehicleMap({
         )}
       </div>
 
-      {/* AC7: selecting an alert moves the map, and this live region announces
-          that outcome for screen reader users independently of the visual pan. */}
-      <p aria-live="polite" className="sr-only">
+      <p aria-live="polite" className="sr-only" key={focusNonce}>
         {liveMessage}
       </p>
     </section>

@@ -2,6 +2,7 @@ import type { RequestHandler } from "msw";
 
 import { summaryNormalHandler } from "@/lib/dashboard/msw/handlers/summary";
 import { alertsNormalHandler } from "@/lib/dashboard/msw/handlers/alerts";
+import { liveLocationsNormalHandler } from "@/lib/dashboard/msw/handlers/live-locations";
 import {
   vehicleAlertHistoryNormalHandler,
   vehicleCurrentRentalNormalHandler,
@@ -20,6 +21,8 @@ import { reservationsNormalHandler } from "@/lib/dashboard/msw/handlers/reservat
 export const handlers: RequestHandler[] = [
   summaryNormalHandler,
   alertsNormalHandler,
+  // Issue #64 — dashboard map GPS.
+  liveLocationsNormalHandler,
   vehiclesNormalHandler,
   // Issue #15 — `/dashboard/vehicles/[vehicleId]`.
   vehicleDetailNormalHandler,

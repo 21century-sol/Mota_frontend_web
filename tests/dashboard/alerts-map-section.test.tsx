@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { AlertsAndMapSection } from "@/components/dashboard/alerts-map/AlertsAndMapSection";
@@ -8,16 +9,11 @@ import {
   alertsEmptyHandler,
   alertsErrorHandler,
 } from "@/lib/dashboard/msw/handlers/alerts";
+import { LIVE_LOCATIONS_PATH } from "@/lib/dashboard/live-locations/api";
 
 /**
- * SSE + 서버 목록 통합 검증. `AlertsAndMapSection`은 지도(fallback) +
- * `LiveAlertsFeed`로 구성된다. `LiveAlertsFeed`는:
- * - `useAlertHistory`(React Query 무한 조회)로 서버 저장 알림을 최신순 표시하고,
- * - `useAlertStream`(SSE)로 실시간 신규 알림을 맨 위에 얹으며 "새 알림" 빨간 점을 붙인다.
- *
- * jsdom에는 `EventSource`가 없으므로 목을 주입해 `alert` 이벤트를 직접 흘려보낸다.
- * (`IntersectionObserver`도 없어 무한 스크롤 관찰은 컴포넌트에서 자동 skip된다.)
- * `window.kakao`는 미설정이라 `VehicleMap`은 항상 fallback을 렌더한다.
+ * SSE + 서버 목록 + live-locations 통합 검증 (#12 / #64).
+ * `window.kakao` 미설정이라 지도는 fallback. EventSource는 목으로 주입.
  */
 type Listener = (event: Event) => void;
 
@@ -64,8 +60,8 @@ function livePayload(overrides: Record<string, unknown> = {}) {
     plateNumber: "12가 3456",
     tireId: "t-1",
     alertLevel: "DANGER",
-    alertTitle: "실시간 신규 알림",
-    alertTime: "2026.07.16 11:00:00", // 픽스처(10:xx)보다 최신 → 맨 위
+    alertTitle: "실시간 수신 알림",
+    alertTime: "2026.07.16 11:00:00",
     ...overrides,
   });
 }
@@ -87,7 +83,7 @@ function renderSection() {
   );
 }
 
-describe("AlertsAndMapSection (SSE + 서버 목록)", () => {
+describe("AlertsAndMapSection (SSE + 서버 목록 + GPS)", () => {
   beforeEach(() => {
     MockEventSource.instances = [];
     vi.stubGlobal("EventSource", MockEventSource);
@@ -107,21 +103,86 @@ describe("AlertsAndMapSection (SSE + 서버 목록)", () => {
     expect(lastSource().url).toContain("/api/dashboard/alerts/subscribe");
   });
 
-  it("loads server-stored alerts (history) without a new-alert dot", async () => {
+  it("loads server-stored alerts (history) without a new-alert marker in the name", async () => {
     renderSection();
     expect(await screen.findByText("알림 제목 1")).toBeInTheDocument();
-    // 과거(서버) 항목에는 "새 알림" 점이 없다.
-    expect(screen.queryByAltText("새 알림")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /새 알림/ }),
+    ).not.toBeInTheDocument();
   });
 
-  it("prepends a live SSE alert and marks it with a '새 알림' red dot", async () => {
+  it("prepends a live SSE alert and marks it with a '새 알림' affordance", async () => {
     renderSection();
-    await screen.findByText("알림 제목 1"); // 히스토리 로드 대기
+    await screen.findByText("알림 제목 1");
 
     act(() => lastSource().emit("alert", livePayload()));
 
-    expect(await screen.findByText("실시간 신규 알림")).toBeInTheDocument();
-    expect(screen.getByAltText("새 알림")).toBeInTheDocument();
+    expect(await screen.findByText("실시간 수신 알림")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /실시간 수신 알림.*새 알림/ }),
+    ).toBeInTheDocument();
+  });
+
+  it("selects a vehicle for the map when an alert row is clicked (#64)", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderSection();
+    await screen.findByText("알림 제목 1");
+
+    const row = screen.getByRole("button", { name: /알림 제목 1/ });
+    await user.click(row);
+
+    expect(row).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByText(/선택한 차량|지도 중심이|지도를 사용할 수 없어/),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the same vehicle selected when another alert for that vehicle is clicked", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderSection();
+    await screen.findByText("알림 제목 1"); // v-1
+    // 홀수 n = v-1, 짝수 = v-2 — 제목 3도 v-1
+    const first = screen.getByRole("button", { name: /알림 제목 1/ });
+    const third = screen.getByRole("button", { name: /알림 제목 3/ });
+
+    await user.click(first);
+    expect(first).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(third);
+    expect(third).toHaveAttribute("aria-pressed", "true");
+    expect(first).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("re-announces map focus when the same selected vehicle row is clicked again (Decision A)", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderSection();
+    await screen.findByText("알림 제목 1");
+
+    const row = screen.getByRole("button", { name: /알림 제목 1/ });
+    await user.click(row);
+    expect(
+      screen.getByText(/선택한 차량|지도 중심이|지도를 사용할 수 없어/),
+    ).toBeInTheDocument();
+
+    await user.click(row);
+    // focusNonce remounts the live region so the same copy is announced again.
+    expect(
+      screen.getByText(/선택한 차량|지도 중심이|지도를 사용할 수 없어/),
+    ).toBeInTheDocument();
+    expect(row).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("requests live-locations for map GPS polling (#64)", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    renderSection();
+    await screen.findByText("알림 제목 1");
+
+    expect(
+      fetchSpy.mock.calls.some(([input]) =>
+        String(input).includes(LIVE_LOCATIONS_PATH),
+      ),
+    ).toBe(true);
+    fetchSpy.mockRestore();
   });
 
   it("shows the empty state when there are no alerts", async () => {

@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -92,84 +95,93 @@ function HighlightTooltip({ viewBox, value }: HighlightTooltipProps) {
  * 스크린 리더에는 의미 있는 정보를 제공하지 않으므로 `aria-hidden`으로 감추고,
  * 동일 데이터를 제공하는 `CostChartAccessibleTable`을 별도로 렌더링한다(Safe Assumption D).
  *
- * `ResponsiveContainer`가 부모 폭에 맞춰 리사이즈하므로 별도 `sm:`/`lg:` 고정폭 없이
- * 모바일 컨테이너에서도 가로 스크롤 없이 반응형으로 동작한다(Decision Resolved 2026-07-16 #3).
+ * `ResponsiveContainer`는 브라우저에서 부모 크기를 측정하므로, SSR HTML과 첫
+ * 클라이언트 페인트가 어긋나지 않게 마운트 이후에만 차트를 그린다.
  */
 export function CostLineChart({ dataset }: { dataset: YearlyCostDataset }) {
+  const [isMounted, setIsMounted] = useState(false);
   const highlightedPoint = dataset.points[dataset.highlightedMonthIndex];
   const highlightedValue = highlightedPoint?.currentYearCost;
 
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   return (
     <div aria-hidden="true" className="h-[236px] w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart
-          data={dataset.points}
-          margin={{ top: 40, right: 8, left: 0, bottom: 8 }}
-        >
-          <CartesianGrid stroke="#ececf1" vertical={false} />
-          <XAxis
-            dataKey="month"
-            axisLine={false}
-            tickLine={false}
-            interval={0}
-            tick={(props) => (
-              <MonthTick
-                {...props}
-                highlightedMonth={dataset.points[dataset.highlightedMonthIndex]?.month ?? -1}
-              />
-            )}
-          />
-          <YAxis
-            axisLine={false}
-            tickLine={false}
-            tickCount={4}
-            width={72}
-            tickFormatter={formatTenThousandWon}
-            tick={{ fontSize: 12, fill: COST_CHART_AXIS_COLOR }}
-          />
-          <Area
-            type="monotone"
-            dataKey="lastYearCost"
-            name="전년"
-            stroke={COST_CHART_AXIS_COLOR}
-            fill={COST_CHART_AXIS_COLOR}
-            fillOpacity={0.08}
-            strokeWidth={2}
-            dot={false}
-            isAnimationActive={false}
-          />
-          <Area
-            type="monotone"
-            dataKey="currentYearCost"
-            name="올해"
-            stroke={COST_CHART_ACCENT_COLOR}
-            fill={COST_CHART_ACCENT_COLOR}
-            fillOpacity={0.12}
-            strokeWidth={2}
-            dot={false}
-            connectNulls={false}
-            isAnimationActive={false}
-          />
-          {highlightedPoint && highlightedValue !== undefined ? (
-            <ReferenceDot
-              x={highlightedPoint.month}
-              y={highlightedValue}
-              r={5}
-              fill={COST_CHART_ACCENT_COLOR}
-              stroke="#ffffff"
-              strokeWidth={2}
-              label={{
-                content: (props) => (
-                  <HighlightTooltip
-                    viewBox={props.viewBox as { x?: number; y?: number }}
-                    value={highlightedValue}
-                  />
-                ),
-              }}
+      {!isMounted ? null : (
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart
+            data={dataset.points}
+            margin={{ top: 40, right: 8, left: 0, bottom: 8 }}
+          >
+            <CartesianGrid stroke="#ececf1" vertical={false} />
+            <XAxis
+              dataKey="month"
+              axisLine={false}
+              tickLine={false}
+              interval={0}
+              tick={(props) => (
+                <MonthTick
+                  {...props}
+                  highlightedMonth={
+                    dataset.points[dataset.highlightedMonthIndex]?.month ?? -1
+                  }
+                />
+              )}
             />
-          ) : null}
-        </AreaChart>
-      </ResponsiveContainer>
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              tickCount={4}
+              width={72}
+              tickFormatter={formatTenThousandWon}
+              tick={{ fontSize: 12, fill: COST_CHART_AXIS_COLOR }}
+            />
+            <Area
+              type="monotone"
+              dataKey="lastYearCost"
+              name="전년"
+              stroke={COST_CHART_AXIS_COLOR}
+              fill={COST_CHART_AXIS_COLOR}
+              fillOpacity={0.08}
+              strokeWidth={2}
+              dot={false}
+              isAnimationActive={false}
+            />
+            <Area
+              type="monotone"
+              dataKey="currentYearCost"
+              name="올해"
+              stroke={COST_CHART_ACCENT_COLOR}
+              fill={COST_CHART_ACCENT_COLOR}
+              fillOpacity={0.12}
+              strokeWidth={2}
+              dot={false}
+              connectNulls={false}
+              isAnimationActive={false}
+            />
+            {highlightedPoint && highlightedValue !== undefined ? (
+              <ReferenceDot
+                x={highlightedPoint.month}
+                y={highlightedValue}
+                r={5}
+                fill={COST_CHART_ACCENT_COLOR}
+                stroke="#ffffff"
+                strokeWidth={2}
+                label={{
+                  content: (props) => (
+                    <HighlightTooltip
+                      viewBox={props.viewBox as { x?: number; y?: number }}
+                      value={highlightedValue}
+                    />
+                  ),
+                }}
+              />
+            ) : null}
+          </AreaChart>
+        </ResponsiveContainer>
+      )}
     </div>
   );
 }

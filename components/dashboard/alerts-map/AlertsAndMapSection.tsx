@@ -1,27 +1,64 @@
 "use client";
 
+import { useState } from "react";
+
 import { VehicleMap } from "@/components/dashboard/alerts-map/VehicleMap";
 import { LiveAlertsFeed } from "@/components/dashboard/alerts-map/LiveAlertsFeed";
+import { useDashboardAlerts } from "@/hooks/dashboard/useDashboardAlerts";
+import { useLiveLocations } from "@/hooks/dashboard/useLiveLocations";
 
 /**
- * `/dashboard` 실시간 알림 + 차량 지도 섹션 (issue #12, Figma "Map and Alerts
- * Container" node 2377:23755).
+ * `/dashboard` 실시간 알림 + 차량 지도 섹션 (issue #12 / #64).
  *
- * 알림은 SSE(`GET /api/dashboard/alerts/subscribe`)로 실시간 수신한다
- * (`LiveAlertsFeed`). 이전의 REST 1회성 fetch(`useAlerts`) + 목록/스켈레톤/에러
- * 재시도/선택 UI는 대응하는 백엔드 목록 GET 엔드포인트가 없어 항상 에러 상태였고,
- * 실시간 요구(앱 POST → 서버 push)와도 맞지 않아 SSE 피드로 대체했다.
- *
- * 지도(`VehicleMap`)는 좌표 기반 마커를 그리지만, SSE payload(`AlertResponse`)에는
- * 좌표가 없어 현재 마커 연동 대상이 아니다 — 빈 목록을 넘겨 지도는 fallback/빈
- * 상태로 둔다. 지도 마커 연동이 필요하면 백엔드 payload에 좌표 보강이 선행되어야
- * 한다.
+ * - 알림: SSE + 서버 히스토리 (`useDashboardAlerts`)
+ * - GPS: `GET /api/dashboard/live-locations` 2초 폴링 후 알림 vehicleId로 필터
+ * - 클릭: vehicleId 선택 → 지도 panTo + 핀 강조. 같은 차량을 다시 클릭해도
+ *   `focusNonce`로 재중앙(Decision A — GPS 폴링마다 추적하지 않음).
  */
 export function AlertsAndMapSection() {
+  const {
+    alerts,
+    liveIds,
+    vehicleIds,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError,
+    refetch,
+  } = useDashboardAlerts();
+
+  const { locations } = useLiveLocations(vehicleIds);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(
+    null,
+  );
+  /** Increments on every alert-row click so re-selecting the same vehicle re-pans. */
+  const [focusNonce, setFocusNonce] = useState(0);
+
+  const handleSelectVehicle = (vehicleId: string) => {
+    setSelectedVehicleId(vehicleId);
+    setFocusNonce((nonce) => nonce + 1);
+  };
+
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start">
-      <VehicleMap alerts={[]} selectedAlertId={null} />
-      <LiveAlertsFeed />
+      <VehicleMap
+        locations={locations}
+        selectedVehicleId={selectedVehicleId}
+        focusNonce={focusNonce}
+      />
+      <LiveAlertsFeed
+        alerts={alerts}
+        liveIds={liveIds}
+        selectedVehicleId={selectedVehicleId}
+        onSelectVehicle={handleSelectVehicle}
+        fetchNextPage={fetchNextPage}
+        hasNextPage={Boolean(hasNextPage)}
+        isFetchingNextPage={isFetchingNextPage}
+        isLoading={isLoading}
+        isError={isError}
+        refetch={refetch}
+      />
     </div>
   );
 }
