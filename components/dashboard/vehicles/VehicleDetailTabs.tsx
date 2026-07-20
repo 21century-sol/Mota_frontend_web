@@ -36,14 +36,10 @@ export function VehicleDetailTabs({
   vehicleId,
   activeTab,
   page,
-  vehiclePhotoUrl,
-  vehicleModel,
 }: {
   vehicleId: string;
   activeTab: VehicleDetailTab;
   page: number;
-  vehiclePhotoUrl: string | undefined;
-  vehicleModel: string;
 }) {
   const router = useRouter();
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -117,11 +113,7 @@ export function VehicleDetailTabs({
         tabIndex={0}
       >
         {activeTab === "tires" ? (
-          <TireStatusTab
-            vehicleId={vehicleId}
-            vehiclePhotoUrl={vehiclePhotoUrl}
-            vehicleModel={vehicleModel}
-          />
+          <TireStatusTab vehicleId={vehicleId} />
         ) : activeTab === "usage" ? (
           <UsageHistoryTab vehicleId={vehicleId} page={page} />
         ) : activeTab === "inspection" ? (
