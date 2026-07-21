@@ -50,20 +50,6 @@ export function toLiveLocation(dto: LiveLocationDto): LiveLocation {
 }
 
 /**
- * 알림 리스트에서 뽑은 vehicleId로 live-locations 전체를 클라이언트 필터한다
- * (API에 query 파라미터 없음 — Decision #64).
- */
-export function filterLocationsByVehicleIds(
-  locations: LiveLocation[],
-  vehicleIds: ReadonlySet<string> | readonly string[],
-): LiveLocation[] {
-  const idSet =
-    vehicleIds instanceof Set ? vehicleIds : new Set(vehicleIds);
-  if (idSet.size === 0) return [];
-  return locations.filter((location) => idSet.has(location.vehicleId));
-}
-
-/**
  * `GET /api/dashboard/live-locations` — 대여 중 차량 최신 GPS.
  * 손상된 행은 건너뛰고 유효한 항목만 반환한다.
  */

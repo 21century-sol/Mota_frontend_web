@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  filterLocationsByVehicleIds,
+  fetchLiveLocations,
   toLiveLocation,
 } from "@/lib/dashboard/live-locations/api";
+import { server } from "@/lib/dashboard/msw/server";
+import { liveLocationsNormalHandler } from "@/lib/dashboard/msw/handlers/live-locations";
 import type { LiveLocationDto } from "@/types/dashboard/live-locations";
 
 const dto = (overrides: Partial<LiveLocationDto> = {}): LiveLocationDto => ({
@@ -16,26 +18,23 @@ const dto = (overrides: Partial<LiveLocationDto> = {}): LiveLocationDto => ({
   ...overrides,
 });
 
-describe("filterLocationsByVehicleIds", () => {
-  const all = [
-    toLiveLocation(dto({ vehicleId: "v-1" })),
-    toLiveLocation(dto({ vehicleId: "v-2", plateNumber: "88허 1004" })),
-    toLiveLocation(dto({ vehicleId: "v-rented-only", plateNumber: "27마 5821" })),
-  ];
+describe("fetchLiveLocations", () => {
+  it("returns every rented vehicle from the API, including vehicles absent from alerts (#69)", async () => {
+    server.use(liveLocationsNormalHandler);
 
-  it("returns only locations whose vehicleId is in the alert set", () => {
-    const filtered = filterLocationsByVehicleIds(all, ["v-1", "v-2"]);
-    expect(filtered.map((l) => l.vehicleId)).toEqual(["v-1", "v-2"]);
-  });
+    const locations = await fetchLiveLocations();
 
-  it("returns an empty list when there are no alert vehicle ids", () => {
-    expect(filterLocationsByVehicleIds(all, [])).toEqual([]);
-  });
-
-  it("deduplicates via Set membership (same id listed twice still one pin)", () => {
-    const filtered = filterLocationsByVehicleIds(all, ["v-1", "v-1"]);
-    expect(filtered).toHaveLength(1);
-    expect(filtered[0]?.vehicleId).toBe("v-1");
+    expect(locations.map((location) => location.vehicleId)).toEqual([
+      "v-1",
+      "v-2",
+      "v-rented-only",
+    ]);
+    expect(
+      locations.find((location) => location.vehicleId === "v-rented-only"),
+    ).toMatchObject({
+      plateNumber: "27마 5821",
+      model: "쏘나타 뉴 라이즈",
+    });
   });
 });
 

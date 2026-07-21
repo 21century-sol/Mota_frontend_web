@@ -7,8 +7,9 @@ import { useAlertHistory } from "@/hooks/dashboard/useAlertHistory";
 import type { LiveAlert } from "@/lib/dashboard/alerts/stream";
 
 /**
- * 대시보드 실시간 알림(SSE) + 서버 히스토리를 병합하고, 지도용 unique
- * `vehicleId` 목록을 만든다 (issue #64).
+ * 대시보드 실시간 알림(SSE) + 서버 히스토리를 병합한다.
+ * 지도 범위는 live-locations API 전체가 소유하며(issue #69), 알림의 vehicleId는
+ * 행 클릭 시 지도 차량 선택에만 사용한다.
  */
 export function useDashboardAlerts() {
   const liveAlerts = useAlertStream();
@@ -37,21 +38,9 @@ export function useDashboardAlerts() {
     return merged;
   }, [liveAlerts, history.items]);
 
-  const vehicleIds = useMemo(() => {
-    const ids: string[] = [];
-    const seen = new Set<string>();
-    for (const alert of alerts) {
-      if (seen.has(alert.vehicleId)) continue;
-      seen.add(alert.vehicleId);
-      ids.push(alert.vehicleId);
-    }
-    return ids;
-  }, [alerts]);
-
   return {
     alerts,
     liveIds,
-    vehicleIds,
     fetchNextPage: history.fetchNextPage,
     hasNextPage: history.hasNextPage,
     isFetchingNextPage: history.isFetchingNextPage,

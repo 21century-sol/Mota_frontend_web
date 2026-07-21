@@ -2,8 +2,8 @@ import type { LiveLocationDto } from "@/types/dashboard/live-locations";
 
 /**
  * live-locations MSW fixtures.
- * `alerts` 픽스처의 `v-1`/`v-2`와 맞춰 지도 필터 교집합을 테스트할 수 있게 하고,
- * 알림에 없는 대여 차량(`v-rented-only`)도 한 건 넣어 클라이언트 필터를 검증한다.
+ * `alerts` 픽스처의 `v-1`/`v-2`와 알림에 없는 대여 차량
+ * (`v-rented-only`)을 함께 제공해 지도에 API 전체가 표시되는지 검증한다(#69).
  */
 export const liveLocationsFixtureRows: LiveLocationDto[] = [
   {

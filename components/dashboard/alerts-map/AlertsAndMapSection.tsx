@@ -11,7 +11,7 @@ import { useLiveLocations } from "@/hooks/dashboard/useLiveLocations";
  * `/dashboard` 실시간 알림 + 차량 지도 섹션 (issue #12 / #64).
  *
  * - 알림: SSE + 서버 히스토리 (`useDashboardAlerts`)
- * - GPS: `GET /api/dashboard/live-locations` 2초 폴링 후 알림 vehicleId로 필터
+ * - GPS: `GET /api/dashboard/live-locations`의 대여 중 전체 차량을 2초 폴링
  * - 클릭: vehicleId 선택 → 지도 panTo + 핀 강조. 같은 차량을 다시 클릭해도
  *   `focusNonce`로 재중앙(Decision A — GPS 폴링마다 추적하지 않음).
  */
@@ -19,7 +19,6 @@ export function AlertsAndMapSection() {
   const {
     alerts,
     liveIds,
-    vehicleIds,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -28,7 +27,7 @@ export function AlertsAndMapSection() {
     refetch,
   } = useDashboardAlerts();
 
-  const { locations } = useLiveLocations(vehicleIds);
+  const { locations } = useLiveLocations();
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(
     null,
   );
