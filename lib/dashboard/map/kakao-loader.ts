@@ -28,9 +28,18 @@ export interface KakaoLatLngBounds {
   extend(latlng: KakaoLatLng): void;
 }
 
+export interface KakaoMapAnimationOptions {
+  animate?: boolean | { duration: number };
+}
+
 export interface KakaoMap {
   setCenter(position: KakaoLatLng): void;
   panTo(position: KakaoLatLng): void;
+  jump(
+    position: KakaoLatLng,
+    level: number,
+    options?: KakaoMapAnimationOptions,
+  ): void;
   setLevel(level: number): void;
   setBounds(bounds: KakaoLatLngBounds): void;
 }

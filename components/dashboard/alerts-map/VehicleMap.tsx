@@ -17,6 +17,8 @@ type MapStatus = "unavailable" | "loading" | "ready" | "error";
 // SDK loads or when there are no pins (Jeju approx., matching product map demos).
 const DEFAULT_CENTER = { lat: 33.4996, lng: 126.5312 };
 const DEFAULT_ZOOM_LEVEL = 9;
+const SELECTED_VEHICLE_ZOOM_LEVEL = 3;
+const SELECTED_VEHICLE_ZOOM_DURATION_MS = 300;
 
 // Figma 1:12020 / 첨부 에셋: 파란 원형 핀. 선택 시 크기만 키워 강조(색만 의존 금지).
 const MARKER_BLUE = "#5a55f2";
@@ -40,9 +42,9 @@ function vehicleIdsKey(locations: LiveLocation[]): string {
  * `NEXT_PUBLIC_KAKAO_MAP_APP_KEY` is set; otherwise shows the supported fallback.
  *
  * Markers include every valid rented vehicle returned by `getLiveLocations`.
- * Alert selection is by `vehicleId` (not alert id): panTo + larger blue pin.
+ * Alert selection is by `vehicleId` (not alert id): atomic zoom/pan + larger pin.
  * `focusNonce` bumps on every alert click (including the same vehicle) so the
- * map re-centers without following GPS every 2s (Decision A).
+ * map zooms/re-centers without following GPS every 2s (Decision A).
  */
 export function VehicleMap({
   locations,
@@ -95,7 +97,8 @@ export function VehicleMap({
   }, []);
 
   // Sync markers by vehicleId; fit bounds when the vehicle set changes;
-  // pan when focusNonce advances (click / re-click), not on every GPS tick.
+  // Zoom/pan atomically when focusNonce advances (click / re-click), not on
+  // every GPS tick. Kakao recommends `jump` when center and level change together.
   useEffect(() => {
     if (status !== "ready" || !mapRef.current) return;
     const kakaoMaps = window.kakao?.maps;
@@ -154,8 +157,11 @@ export function VehicleMap({
         (location) => location.vehicleId === selectedVehicleId,
       );
       if (selected) {
+        const position = new kakaoMaps.LatLng(selected.lat, selected.lng);
         lastFocusNonceRef.current = focusNonce;
-        map.panTo(new kakaoMaps.LatLng(selected.lat, selected.lng));
+        map.jump(position, SELECTED_VEHICLE_ZOOM_LEVEL, {
+          animate: { duration: SELECTED_VEHICLE_ZOOM_DURATION_MS },
+        });
       }
     }
   }, [locations, selectedVehicleId, focusNonce, status]);
@@ -180,7 +186,7 @@ export function VehicleMap({
         ? "선택한 차량의 실시간 위치가 없습니다."
         : "선택한 차량 — 지도를 사용할 수 없어 위치를 표시할 수 없습니다."
       : status === "ready"
-        ? `지도 중심이 ${selectedLocation.plateNumber} 위치로 이동했습니다.`
+        ? `지도가 ${selectedLocation.plateNumber} 위치로 확대 이동했습니다.`
         : `${selectedLocation.plateNumber} 선택됨 — 지도를 사용할 수 없어 위치를 표시할 수 없습니다.`;
 
   return (
