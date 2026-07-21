@@ -5,7 +5,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { TireStatusTab } from "@/components/dashboard/vehicles/tabs/TireStatusTab";
 import { server } from "@/lib/dashboard/msw/server";
-import { vehicleTireDetailNormalHandler, vehicleTireTrendNormalHandler } from "@/lib/dashboard/msw/handlers/vehicles";
+import {
+  vehicleTireDetailNormalHandler,
+  vehicleTireTrendErrorHandler,
+  vehicleTireTrendNormalHandler,
+} from "@/lib/dashboard/msw/handlers/vehicles";
 
 function renderTab(vehicleId: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } });
@@ -92,6 +96,22 @@ describe("TireStatusTab", () => {
 
     expect(temperatureButton).toHaveFocus();
     expect(temperatureButton).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("keeps the title and metric controls outside the card when the trend request errors", async () => {
+    server.use(vehicleTireDetailNormalHandler, vehicleTireTrendErrorHandler);
+    renderTab("vehicle-mgmt-001");
+
+    const heading = await screen.findByRole("heading", { name: "타이어 상태 추이" });
+    const controls = screen.getByRole("group", { name: "상태 추이 지표 선택" });
+    const chartCard = screen.getByTestId("tire-trend-chart-card");
+    const alert = await screen.findByRole("alert");
+
+    expect(chartCard).toContainElement(alert);
+    expect(chartCard).not.toContainElement(heading);
+    expect(chartCard).not.toContainElement(controls);
+    expect(screen.getByRole("button", { name: "공기압" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "다시 시도" })).toBeEnabled();
   });
 
   it("shows empty trend copy when all metric values are null", async () => {
