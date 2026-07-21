@@ -6,7 +6,7 @@ import { BottomButton, MobileShell, StepTitle } from "./ui";
 type PermState = "idle" | "requesting" | "granted" | "denied" | "nodevice";
 
 interface Props {
-  /** 카메라 권한이 허용된 뒤 '허용' 버튼을 누르면 호출 (다음 단계로 진행) */
+  /** 카메라 권한이 허용된 뒤 '허용' 버튼을 누르면 호출 (다음 단계로 진행)  */
   onGranted?: () => void;
 }
 
