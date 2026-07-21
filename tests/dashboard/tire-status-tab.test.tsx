@@ -64,6 +64,36 @@ describe("TireStatusTab", () => {
     expect(pressureButton).toHaveAttribute("aria-pressed", "false");
   });
 
+  it("keeps the title and metric controls outside the non-interactive graph card", async () => {
+    server.use(vehicleTireDetailNormalHandler, vehicleTireTrendNormalHandler);
+    renderTab("vehicle-mgmt-001");
+
+    const heading = await screen.findByRole("heading", { name: "타이어 상태 추이" });
+    const controls = screen.getByRole("group", { name: "상태 추이 지표 선택" });
+    const chartCard = screen.getByTestId("tire-trend-chart-card");
+    const chartVisual = await screen.findByTestId("tire-trend-chart-visual");
+
+    expect(chartCard).toContainElement(chartVisual);
+    expect(chartCard).not.toContainElement(heading);
+    expect(chartCard).not.toContainElement(controls);
+    expect(chartVisual).toHaveAttribute("aria-hidden", "true");
+    expect(chartVisual).toHaveClass("pointer-events-none", "select-none");
+    expect(screen.getByRole("button", { name: "공기압" })).toBeEnabled();
+  });
+
+  it("keeps the external metric controls keyboard operable", async () => {
+    server.use(vehicleTireDetailNormalHandler, vehicleTireTrendNormalHandler);
+    const user = userEvent.setup();
+    renderTab("vehicle-mgmt-001");
+
+    const temperatureButton = await screen.findByRole("button", { name: "온도" });
+    temperatureButton.focus();
+    await user.keyboard("{Enter}");
+
+    expect(temperatureButton).toHaveFocus();
+    expect(temperatureButton).toHaveAttribute("aria-pressed", "true");
+  });
+
   it("shows empty trend copy when all metric values are null", async () => {
     server.use(vehicleTireDetailNormalHandler, vehicleTireTrendNormalHandler);
     renderTab("vehicle-mgmt-004");
