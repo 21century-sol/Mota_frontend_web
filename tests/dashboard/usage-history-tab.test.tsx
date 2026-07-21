@@ -40,6 +40,74 @@ describe("UsageHistoryTab", () => {
     expect(screen.getByText("전체 20건 중 1-8 표시")).toBeInTheDocument();
   });
 
+  it("matches the Figma table geometry and typography", async () => {
+    server.use(vehicleRentalHistoryNormalHandler);
+    renderTab("vehicle-mgmt-001", 1);
+
+    const table = await screen.findByRole("table");
+    const heading = screen.getByRole("heading", {
+      level: 2,
+      name: "이용 이력",
+    });
+    expect(heading).toHaveClass(
+      "pl-3",
+      "text-xl",
+      "font-medium",
+      "tracking-[-0.5px]",
+      "text-dashboard-text-primary",
+    );
+    expect(heading.parentElement).toHaveClass("gap-4");
+    expect(table).toHaveClass("min-w-[800px]", "table-fixed");
+    const columns = table.querySelectorAll("col");
+    expect(columns).toHaveLength(5);
+    expect(columns[0]).toHaveClass("w-[28.375%]");
+    expect(columns[1]).toHaveClass("w-[21.125%]");
+    expect(columns[2]).toHaveClass("w-[18.125%]");
+    expect(columns[3]).toHaveClass("w-[18.125%]");
+    expect(columns[4]).toHaveClass("w-[14.25%]");
+
+    const scrollContainer = table.parentElement;
+    const tableCard = scrollContainer?.parentElement;
+    if (!scrollContainer || !tableCard) {
+      throw new Error("Usage history table containers were not rendered.");
+    }
+    expect(scrollContainer).toHaveClass("overflow-x-auto");
+    expect(tableCard).toHaveClass(
+      "overflow-hidden",
+      "rounded-dashboard-card",
+      "border-dashboard-vehicles-border",
+    );
+
+    const rows = screen.getAllByRole("row");
+    expect(rows[0]).toHaveClass(
+      "h-12",
+      "bg-dashboard-vehicles-surface",
+      "text-base",
+      "text-dashboard-vehicles-label",
+    );
+    expect(within(rows[0]).getByText("이용자")).toHaveClass(
+      "ml-[29.96%]",
+      "block",
+    );
+    expect(rows[1]).toHaveClass("h-[70px]");
+
+    const name = within(rows[1]).getByText("윤지호");
+    const contact = within(rows[1]).getByText("010-0000-0001");
+    expect(name).toHaveClass("text-base", "text-dashboard-usage-text");
+    expect(contact).toHaveClass("text-xs", "text-dashboard-usage-text-muted");
+
+    const distance = within(rows[1]).getByText("210.4");
+    const distanceCell = distance.closest("td");
+    if (!distanceCell) {
+      throw new Error("Distance cell was not rendered.");
+    }
+    expect(distance).toHaveClass("text-base", "text-dashboard-usage-text");
+    expect(within(distanceCell).getByText("km")).toHaveClass(
+      "text-xs",
+      "text-dashboard-vehicles-label",
+    );
+  });
+
   it("navigates to ?tab=usage&page=2 when page 2 is clicked and requests page=2 (AC9)", async () => {
     server.use(vehicleRentalHistoryNormalHandler);
     const user = userEvent.setup();
@@ -119,6 +187,17 @@ describe("UsageHistoryTab", () => {
     expect(screen.getByText("윤지호")).toBeInTheDocument();
     expect(screen.getByText("010-0000-0001")).toBeInTheDocument();
     expect(screen.getByText("2건")).toBeInTheDocument();
+    const alertCountCell = screen.getByText("2건").closest("td");
+    if (!alertCountCell) {
+      throw new Error("Alert-count cell was not rendered.");
+    }
+    const warningIcon = alertCountCell.querySelector("svg");
+    expect(warningIcon).toHaveClass(
+      "h-3.5",
+      "w-3.5",
+      "text-dashboard-usage-alert",
+    );
+    expect(warningIcon).toHaveAttribute("aria-hidden", "true");
     // row 2 (최유진): alertCount null → rendered as an empty cell, not "0건"/"null건".
     expect(screen.queryByText("0건")).not.toBeInTheDocument();
     expect(screen.queryByText("null건")).not.toBeInTheDocument();
@@ -142,7 +221,14 @@ describe("UsageHistoryTab", () => {
     );
     expect(reportLink).toHaveAttribute("target", "_blank");
     expect(reportLink).toHaveAttribute("rel", "noopener noreferrer");
-    expect(reportLink).toHaveTextContent("리포트");
+    expect(reportLink).toHaveTextContent("PDF");
+    expect(reportLink).toHaveClass(
+      "text-[15px]",
+      "text-dashboard-chart-accent",
+    );
+    const linkIcon = reportLink.querySelector("svg");
+    expect(linkIcon).toHaveClass("h-5", "w-5");
+    expect(linkIcon).toHaveAttribute("aria-hidden", "true");
   });
 
   it("marks the panel aria-busy while loading", () => {

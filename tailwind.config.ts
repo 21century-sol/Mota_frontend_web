@@ -120,6 +120,7 @@ const config: Config = {
         "dashboard-usage-text": "#141415", // 이용 이력 탭 본문 텍스트
         "dashboard-usage-text-muted": "#909090", // 이용 이력 탭 전화번호 텍스트
         "dashboard-usage-text-subtle": "#969696", // 이용 이력 탭 리포트 링크 텍스트
+        "dashboard-usage-alert": "#fe3d16", // 이용 이력 탭 알림건수 경고 아이콘 (issue #56, Figma 1:14659)
 
         // Dashboard reservations tokens (issue #16, Figma file nt8U8I48Rcfz8LGNqYvRZv,
         // root 11:27931 / 1:12430). (.claude/handoffs/16-figma-specs.md Token Mapping,
