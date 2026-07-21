@@ -44,7 +44,7 @@ type Step =
   | "dashboard"
   | "done";
 
-/** 전체화면 중앙 메시지 (로딩/에러)  */
+/** 전체화면 중앙 메시지 (로딩/에러)   */
 function CenterScreen({ children }: { children: ReactNode }) {
   return (
     <main className="flex min-h-[100dvh] w-full flex-col items-center justify-center gap-4 bg-white px-8 text-center">
