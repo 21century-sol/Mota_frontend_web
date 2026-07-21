@@ -36,11 +36,11 @@ function vehicleIdsKey(locations: LiveLocation[]): string {
 }
 
 /**
- * Real-time vehicle map (issue #12 + #64). Loads Kakao Maps when
+ * Real-time vehicle map (issue #12 + #64 + #69). Loads Kakao Maps when
  * `NEXT_PUBLIC_KAKAO_MAP_APP_KEY` is set; otherwise shows the supported fallback.
  *
- * Markers come from `getLiveLocations` filtered by alert `vehicleId`s. Selection
- * is by `vehicleId` (not alert id): panTo + larger blue pin.
+ * Markers include every valid rented vehicle returned by `getLiveLocations`.
+ * Alert selection is by `vehicleId` (not alert id): panTo + larger blue pin.
  * `focusNonce` bumps on every alert click (including the same vehicle) so the
  * map re-centers without following GPS every 2s (Decision A).
  */
