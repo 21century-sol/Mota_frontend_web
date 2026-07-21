@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { QueryProvider } from "@/components/dashboard/QueryProvider";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { TopBar } from "@/components/dashboard/TopBar";
+
+export const metadata: Metadata = {
+  title: "Monitoring Tire Dashboard",
+};
 
 /**
  * Common shell for every `/dashboard` route (issue #10). Server Component — the
