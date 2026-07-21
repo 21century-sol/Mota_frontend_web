@@ -198,15 +198,21 @@ export function TireStatusTab({ vehicleId }: { vehicleId: string }) {
         )}
       </div>
 
-      <div className="rounded-dashboard-card bg-white p-6 shadow-dashboard-card">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h3 className="m-0 text-lg font-semibold tracking-tight text-dashboard-vehicles-title">
+      <section
+        aria-labelledby="tire-trend-heading"
+        className="flex flex-col gap-3"
+      >
+        <header className="flex flex-wrap items-center justify-between gap-3 pl-3">
+          <h3
+            id="tire-trend-heading"
+            className="m-0 text-lg font-semibold tracking-[-0.45px] text-dashboard-text-primary"
+          >
             타이어 상태 추이
           </h3>
           <div
             role="group"
             aria-label="상태 추이 지표 선택"
-            className="flex flex-wrap rounded-full bg-white p-1 shadow-[inset_0_1px_4px_rgba(0,0,0,0.12)]"
+            className="flex max-w-full overflow-x-auto rounded-full bg-white p-1 shadow-[inset_0_1px_4px_rgba(0,0,0,0.12)]"
           >
             {TIRE_TREND_METRICS.map((option) => {
               const isSelected = option === metric;
@@ -217,10 +223,10 @@ export function TireStatusTab({ vehicleId }: { vehicleId: string }) {
                   aria-pressed={isSelected}
                   onClick={() => setMetric(option)}
                   className={[
-                    "min-w-[100px] rounded-full px-4 py-2 text-base outline-none transition-colors focus-visible:ring-2 focus-visible:ring-dashboard-chart-accent",
+                    "w-[100px] shrink-0 whitespace-nowrap rounded-full border-2 py-2 text-base outline-none transition-colors focus-visible:ring-2 focus-visible:ring-dashboard-chart-accent",
                     isSelected
-                      ? "bg-dashboard-chart-accent font-semibold text-white shadow-[0_2px_2px_rgba(0,0,0,0.12)]"
-                      : "font-medium text-dashboard-vehicles-label hover:text-dashboard-vehicles-title",
+                      ? "border-dashboard-chart-accent bg-dashboard-chart-accent font-semibold text-white shadow-[0_2px_2px_rgba(0,0,0,0.12)]"
+                      : "border-transparent font-medium text-dashboard-vehicles-label hover:text-dashboard-vehicles-title",
                   ].join(" ")}
                 >
                   {formatTireTrendMetricLabel(option)}
@@ -228,39 +234,52 @@ export function TireStatusTab({ vehicleId }: { vehicleId: string }) {
               );
             })}
           </div>
-        </div>
+        </header>
 
-        <div aria-busy={tireTrendQuery.isPending}>
-          {tireTrendQuery.isError ? (
-            <div role="alert" className="flex flex-col items-start gap-2 py-6">
-              <p className="m-0 text-sm font-medium text-dashboard-vehicles-title">
-                {tireTrendQuery.error instanceof VehicleTireTrendFetchError
-                  ? tireTrendQuery.error.userMessage
-                  : "타이어 상태 추이를 불러오지 못했습니다."}
-              </p>
-              <button
-                type="button"
-                onClick={() => tireTrendQuery.refetch()}
-                disabled={tireTrendQuery.isFetching}
-                aria-busy={tireTrendQuery.isFetching}
-                className="rounded-full bg-dashboard-sidebar px-4 py-2 text-sm font-medium text-white outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-dashboard-sidebar focus-visible:ring-offset-2 disabled:opacity-60"
+        <div
+          data-testid="tire-trend-chart-card"
+          className="h-[356px] overflow-hidden rounded-[24px] bg-white p-6 shadow-dashboard-card"
+        >
+          <div aria-busy={tireTrendQuery.isPending} className="h-full">
+            {tireTrendQuery.isError ? (
+              <div
+                role="alert"
+                className="flex h-full flex-col items-start justify-center gap-2"
               >
-                {tireTrendQuery.isFetching ? "다시 시도하는 중..." : "다시 시도"}
-              </button>
-            </div>
-          ) : tireTrendQuery.isPending ? (
-            <p className="m-0 py-10 text-center text-sm text-dashboard-vehicles-label">
-              상태 추이를 불러오는 중입니다.
-            </p>
-          ) : trendEmpty ? (
-            <p role="status" className="m-0 py-10 text-center text-sm text-dashboard-vehicles-label">
-              표시할 상태 추이 데이터가 없습니다.
-            </p>
-          ) : (
-            <TireTrendChart points={trendPoints} />
-          )}
+                <p className="m-0 text-sm font-medium text-dashboard-vehicles-title">
+                  {tireTrendQuery.error instanceof VehicleTireTrendFetchError
+                    ? tireTrendQuery.error.userMessage
+                    : "타이어 상태 추이를 불러오지 못했습니다."}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => tireTrendQuery.refetch()}
+                  disabled={tireTrendQuery.isFetching}
+                  aria-busy={tireTrendQuery.isFetching}
+                  className="rounded-full bg-dashboard-sidebar px-4 py-2 text-sm font-medium text-white outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-dashboard-sidebar focus-visible:ring-offset-2 disabled:opacity-60"
+                >
+                  {tireTrendQuery.isFetching
+                    ? "다시 시도하는 중..."
+                    : "다시 시도"}
+                </button>
+              </div>
+            ) : tireTrendQuery.isPending ? (
+              <p className="m-0 flex h-full items-center justify-center text-sm text-dashboard-vehicles-label">
+                상태 추이를 불러오는 중입니다.
+              </p>
+            ) : trendEmpty ? (
+              <p
+                role="status"
+                className="m-0 flex h-full items-center justify-center text-sm text-dashboard-vehicles-label"
+              >
+                표시할 상태 추이 데이터가 없습니다.
+              </p>
+            ) : (
+              <TireTrendChart points={trendPoints} />
+            )}
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
