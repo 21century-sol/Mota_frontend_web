@@ -30,7 +30,7 @@ export function AlertHistoryList({ alerts }: { alerts: AlertHistoryItem[] }) {
       {alerts.map((alert) => (
         <li key={alert.alertId} className="flex flex-col items-start gap-1 py-3 pl-0 pr-3">
           <p className="m-0 text-base font-medium tracking-tight text-dashboard-vehicles-title">
-            {alert.position} {alert.alertTitle}
+              {alert.alertTitle}
           </p>
           <span className="text-sm font-normal tracking-tight text-dashboard-vehicles-label">
             {formatKstWireDateTimeLabel(alert.alertTime)}
