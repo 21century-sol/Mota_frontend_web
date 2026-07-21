@@ -59,15 +59,22 @@ describe("AlertHistoryList (issue #47)", () => {
     },
   ];
 
-  it("renders '{position} {alertTitle}' with the raw enum code and the formatted KST time, in the given order (AC1)", () => {
+  it("renders '{alertTitle}' and the formatted KST time, in the given order (AC1)", () => {
     render(<AlertHistoryList alerts={alerts} />);
 
     const items = screen.getAllByRole("listitem");
     expect(items).toHaveLength(2);
-    expect(within(items[0]).getByText("FR 공기압 알림")).toBeInTheDocument();
+    expect(within(items[0]).getByText("공기압 알림")).toBeInTheDocument();
     expect(within(items[0]).getByText("2026.07.18 오전 11:00")).toBeInTheDocument();
-    expect(within(items[1]).getByText("FL 마모도 알림")).toBeInTheDocument();
+    expect(within(items[1]).getByText("마모도 알림")).toBeInTheDocument();
     expect(within(items[1]).getByText("2026.06.01 오전 10:00")).toBeInTheDocument();
+  });
+
+  it("never renders the tire position code (FR/FL stay invisible)", () => {
+    render(<AlertHistoryList alerts={alerts} />);
+
+    expect(screen.queryByText(/FR/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/FL/)).not.toBeInTheDocument();
   });
 
   it("never renders the alertLevel value anywhere (WARNING/DANGER stay invisible, AC1)", () => {
@@ -96,8 +103,8 @@ describe("VehicleSidePanel alert history section (issue #47)", () => {
       await vi.advanceTimersByTimeAsync(0);
     });
 
-    expect(await screen.findByText("FR 공기압 알림")).toBeInTheDocument();
-    expect(screen.getByText("FL 마모도 알림")).toBeInTheDocument();
+    expect(await screen.findByText("공기압 알림")).toBeInTheDocument();
+    expect(screen.getByText("마모도 알림")).toBeInTheDocument();
   });
 
   it("shows the empty-state message with role=status for 0 alerts (AC3)", async () => {
@@ -135,6 +142,6 @@ describe("VehicleSidePanel alert history section (issue #47)", () => {
       await vi.advanceTimersByTimeAsync(0);
     });
 
-    expect(await screen.findByText("FR 공기압 알림")).toBeInTheDocument();
+    expect(await screen.findByText("공기압 알림")).toBeInTheDocument();
   });
 });
