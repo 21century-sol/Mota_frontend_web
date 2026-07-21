@@ -29,9 +29,13 @@ export function TireTrendChart({ points }: { points: TireTrendPoint[] }) {
       <div
         data-testid="tire-trend-chart-visual"
         aria-hidden="true"
-        className="pointer-events-none select-none"
+        className="pointer-events-none flex h-full select-none flex-col"
       >
-        <div className="mb-3 flex justify-end gap-3">
+        {/* `flex-col` + `min-h-0 flex-1` chart (not a fixed px height) so the
+            legend row's real height is subtracted from the fixed 356px card
+            instead of being added on top of it — a fixed height here plus
+            the legend row overflowed the card by ~3px under `overflow-hidden`. */}
+        <div className="mb-3 flex shrink-0 justify-end gap-3">
           {WHEEL_POSITIONS.map((position) => (
             <span key={position} className="inline-flex items-center gap-2 text-sm font-medium">
               <span
@@ -43,7 +47,7 @@ export function TireTrendChart({ points }: { points: TireTrendPoint[] }) {
           ))}
         </div>
 
-        <div className="h-[279px] w-full">
+        <div className="min-h-0 w-full flex-1">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={points} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
               <CartesianGrid
