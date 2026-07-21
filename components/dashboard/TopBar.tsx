@@ -24,14 +24,14 @@ export function TopBar() {
             className="h-5 w-5 shrink-0 text-dashboard-account-text"
             aria-hidden="true"
           />
-          {/* Non-goal (#10): static placeholder text, no real account session. */}
+          {/* Issue #73: user-confirmed static label; no real account session. */}
           <div className="flex w-[110px] shrink-0 items-center gap-1 rounded-full border border-dashboard-border p-1">
             <span
               aria-hidden="true"
               className="h-8 w-8 shrink-0 rounded-full bg-gradient-to-r from-[#7366f2] to-[#d980bf]"
             />
             <span className="overflow-hidden text-ellipsis whitespace-nowrap text-xs font-medium tracking-[-0.3px] text-dashboard-account-text">
-              어드민어드민어드민
+              Sinhan
             </span>
           </div>
         </div>

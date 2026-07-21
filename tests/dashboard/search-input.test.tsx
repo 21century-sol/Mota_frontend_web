@@ -4,12 +4,17 @@ import userEvent from "@testing-library/user-event";
 import { SearchInput } from "../../components/dashboard/SearchInput";
 
 describe("SearchInput", () => {
-  it("renders the placeholder and no clear button by default", () => {
-    render(<SearchInput />);
+  it("renders at the Figma size with the placeholder and no clear button by default", () => {
+    const { container } = render(<SearchInput />);
 
     expect(
       screen.getByPlaceholderText("차량번호, 고객명, 예약번호 검색"),
     ).toBeInTheDocument();
+    expect(container.firstElementChild).toHaveClass(
+      "w-[400px]",
+      "max-w-full",
+    );
+    expect(container.querySelector("svg")).toHaveClass("h-6", "w-6");
     expect(
       screen.queryByRole("button", { name: "검색어 지우기" }),
     ).not.toBeInTheDocument();

@@ -16,7 +16,7 @@ export function SearchInput() {
   const hasValue = value.length > 0;
 
   return (
-    <div className="w-full max-w-[560px]">
+    <div className="w-[400px] max-w-full">
       <label htmlFor={inputId} className="sr-only">
         차량번호, 고객명, 예약번호 검색
       </label>
@@ -29,7 +29,7 @@ export function SearchInput() {
         ].join(" ")}
       >
         <Search
-          className="h-4 w-4 shrink-0 text-dashboard-placeholder"
+          className="h-6 w-6 shrink-0 text-dashboard-placeholder"
           aria-hidden="true"
         />
         <input
