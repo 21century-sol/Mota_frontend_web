@@ -5,18 +5,22 @@ import type {
 
 /**
  * Static demo fixtures for the `/dashboard` vehicle maintenance cost chart
- * (issue #13). There is no real cost API yet (PM Non-goal, api-agent skipped —
- * `.claude/handoffs/13-pm-breakdown.md`), so this module is the sole data
- * source and is imported directly by {@link CostChartSection} without any
- * network request, React Query, or MSW handler.
+ * (issue #13, Figma trend alignment #57). There is no real cost API yet
+ * (PM Non-goal, api-agent skipped — `.claude/handoffs/13-pm-breakdown.md`),
+ * so this module is the sole data source and is imported directly by
+ * {@link CostChartSection} without any network request, React Query, or MSW.
  *
- * `2026` values mirror the exact numbers confirmed in the Figma screenshot
- * (highlighted July value "1,760", "22%" 감소). `2025` has no dedicated Figma
- * frame (Decision Resolved 2026-07-16 #5,
- * `.claude/handoffs/13-figma-specs.md`) — it reuses the same chart
- * component/styles and only supplies different fixture numbers, deliberately
- * varying the highlighted month and using an "increase" comparison so both
- * caret directions are exercised in tests.
+ * `2026` values are derived from Figma node 1:12117's original SVG paths:
+ * - current stroke asset `83ddc50c-2d7e-4a22-91d6-21fc7b30a664`
+ * - last stroke asset `8ee25006-d1be-471c-9c0d-30f81e8a0bc9`
+ * - current (purple) line stops at July; the authored tooltip fixes July at `1,760`
+ * - last (gray) line spans all 12 months and peaks near October
+ * - Y domain ticks: 1,000 / 1,500 / 3,000 / 4,500
+ * - comparison badge: `22%` 감소
+ *
+ * When 2025 is selected, its current (purple) series is exactly the gray
+ * 2025 series shown in the 2026 view. Its prior-year gray series preserves
+ * the same monthly trend at 85% of each value (15% lower).
  */
 
 function buildMonthlyPoints(
@@ -30,11 +34,23 @@ function buildMonthlyPoints(
   }));
 }
 
+const FIGMA_2025_COSTS = [
+  1312, 1468, 1096, 1076, 1392, 1829, 2317, 2567, 2317, 2958, 2323, 2476,
+] as const;
+
+const FIGMA_2024_COSTS = FIGMA_2025_COSTS.map((cost) =>
+  Math.round(cost * 0.85),
+);
+
+/**
+ * Values are the monthly samples of the Figma cubic paths, converted through
+ * the authored Y-axis positions. July uses the explicit Figma tooltip value.
+ */
 const COST_CHART_2026 = {
   year: 2026,
   points: buildMonthlyPoints(
-    [1200, 1450, 1700, 1950, 2200, 2500, 2800, 3100, 3400, 3700, 3450, 3200],
-    [1150, 1300, 1420, 1580, 1690, 1720, 1760],
+    FIGMA_2025_COSTS,
+    [956, 1045, 762, 835, 1034, 1288, 1760],
   ),
   highlightedMonthIndex: 6, // 7월 — Figma 강조 포인트 "1,760"
   comparisonPercentage: 22,
@@ -44,10 +60,10 @@ const COST_CHART_2026 = {
 const COST_CHART_2025 = {
   year: 2025,
   points: buildMonthlyPoints(
-    [1000, 1150, 1300, 1450, 1600, 1750, 1900, 2050, 2200, 2350, 2500, 2650],
-    [1050, 1250, 1450, 1650, 1850, 2050, 2250, 2450, 2650, 2850, 3050],
+    FIGMA_2024_COSTS,
+    FIGMA_2025_COSTS,
   ),
-  highlightedMonthIndex: 10, // 11월 — Figma 미제공, 자체 fixture
+  highlightedMonthIndex: 11,
   comparisonPercentage: 15,
   comparisonDirection: "increase",
 } satisfies YearlyCostDataset;

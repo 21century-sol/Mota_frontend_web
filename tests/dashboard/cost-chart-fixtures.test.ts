@@ -66,6 +66,44 @@ describe("cost-chart fixtures", () => {
     );
   });
 
+  it("2026 exactly matches the monthly samples derived from the Figma paths", () => {
+    const dataset = COST_CHART_DATASETS_BY_YEAR[2026];
+
+    expect(dataset.points.map((point) => point.lastYearCost)).toEqual([
+      1312, 1468, 1096, 1076, 1392, 1829, 2317, 2567, 2317, 2958, 2323,
+      2476,
+    ]);
+    expect(dataset.points.map((point) => point.currentYearCost)).toEqual([
+      956,
+      1045,
+      762,
+      835,
+      1034,
+      1288,
+      1760,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    ]);
+  });
+
+  it("2025 reuses the 2026 gray series as purple and derives a 15% lower gray series", () => {
+    const selected2025 = COST_CHART_DATASETS_BY_YEAR[2025];
+    const selected2026 = COST_CHART_DATASETS_BY_YEAR[2026];
+    const current2025 = selected2025.points.map(
+      (point) => point.currentYearCost,
+    );
+    const gray2026 = selected2026.points.map((point) => point.lastYearCost);
+
+    expect(current2025).toEqual(gray2026);
+    expect(selected2025.highlightedMonthIndex).toBe(11);
+    expect(selected2025.points.map((point) => point.lastYearCost)).toEqual(
+      gray2026.map((cost) => Math.round(cost * 0.85)),
+    );
+  });
+
   it.each(COST_CHART_YEARS)(
     "%i dataset has a positive, integer comparisonPercentage",
     (year) => {
