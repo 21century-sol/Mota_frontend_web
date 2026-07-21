@@ -61,6 +61,21 @@ describe("CostChartSection", () => {
     ).toBeInTheDocument();
   });
 
+  it("keeps the chart visual non-interactive while year buttons remain selectable", () => {
+    const { container } = render(<CostChartSection />);
+    const chartVisual = container.querySelector(
+      '[aria-hidden="true"].pointer-events-none',
+    );
+
+    expect(chartVisual).toHaveClass("pointer-events-none", "select-none");
+    expect(
+      screen.getByRole("button", { name: "2025년 데이터 보기" }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "2026년 데이터 보기" }),
+    ).toBeEnabled();
+  });
+
   it("provides an sr-only table with all 12 months and an explicit direction word (AC5)", () => {
     render(<CostChartSection />);
 

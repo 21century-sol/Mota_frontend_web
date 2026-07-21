@@ -30,7 +30,7 @@ export function YearSelector({
             aria-label={`${year}년 데이터 보기`}
             onClick={() => onSelectYear(year)}
             className={[
-              "rounded-[7px] px-2.5 py-1 text-sm font-semibold tracking-[-0.35px] outline-none transition-colors",
+              "rounded-[7px] px-2.5 py-0.5 text-sm font-semibold tracking-[-0.35px] outline-none transition-colors",
               "focus-visible:ring-2 focus-visible:ring-dashboard-chart-accent focus-visible:ring-offset-2",
               isSelected
                 ? "bg-dashboard-chart-accent-soft text-dashboard-chart-accent"

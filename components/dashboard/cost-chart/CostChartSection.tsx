@@ -37,10 +37,10 @@ export function CostChartSection() {
   return (
     <section
       aria-labelledby="cost-chart-heading"
-      className="rounded-dashboard-card bg-white p-6 shadow-dashboard-card"
+      className="relative h-[345px] overflow-hidden rounded-[24px] border border-[#eeeeee] bg-white shadow-dashboard-card"
     >
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
+      <div className="flex h-[60px] items-center justify-between px-6 py-2">
+        <div className="flex items-center gap-2">
           <h2
             id="cost-chart-heading"
             className="m-0 text-lg font-normal tracking-[-0.45px] text-black"
@@ -57,7 +57,7 @@ export function CostChartSection() {
           <div
             role="group"
             aria-label={`전년대비 ${dataset.comparisonPercentage}% ${directionLabel}`}
-            className="mt-1 flex items-center gap-1"
+            className="flex items-center gap-1"
           >
             <ChevronDown
               aria-hidden="true"
@@ -83,7 +83,7 @@ export function CostChartSection() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center">
           {/*
             "전체보기"는 정적 텍스트만 렌더링한다 — Figma에 상세 화면 디자인이 없어
             클릭 인터랙션·href·목적지를 만들지 않는다(Decision Resolved 2026-07-16 #4,
@@ -94,15 +94,20 @@ export function CostChartSection() {
             <ChevronRight aria-hidden="true" className="h-4 w-4" />
           </span>
 
-          <YearSelector
-            years={COST_CHART_YEARS}
-            selectedYear={selectedYear}
-            onSelectYear={setSelectedYear}
-          />
         </div>
       </div>
 
-      <CostLineChart dataset={dataset} />
+      <div className="absolute right-[23px] top-[71px]">
+        <YearSelector
+          years={COST_CHART_YEARS}
+          selectedYear={selectedYear}
+          onSelectYear={setSelectedYear}
+        />
+      </div>
+
+      <div className="absolute left-[39px] right-[39px] top-[94px]">
+        <CostLineChart dataset={dataset} />
+      </div>
       <CostChartAccessibleTable dataset={dataset} />
     </section>
   );
